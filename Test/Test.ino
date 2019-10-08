@@ -1,16 +1,44 @@
 // Test voor de Arduino, en hopelijk zonder toeters en belletjes...
+#include "TinyGPS++.h"
+#include "SoftwareSerial.h"
+
+SoftwareSerial serial_connection(10, 11); //RX-pin 10, TX-pin 11
+TinyGPSPlus gps;
+
+//float pi = 3.14159;
+//int divider = 100;
+//int amp = 5;
+//float radian = pi/divider;
 
 void setup() {
-	float angle = 0;
-
 	Serial.begin(9600);
+  serial_connection.begin(9600);
+  Serial.println("GPS Start");
 }
 
 void loop() {
-	Serial.println(sin(angle));
-	angle++;
-
-	if(angle == 90) {
-		angle = 0;
+	while(serial_connection.available()) {
+	  gps.encode(serial_connection.read());
 	}
+
+  if(gps.location.isUpdated()) {
+    Serial.println("Satellite count: ");
+    Serial.println(gps.satellites.value());
+    Serial.println("Latitude: ");
+    Serial.println(gps.location.lat(), 6);
+    Serial.println("Longitude: ");
+    Serial.println(gps.location.lng(), 6);
+    Serial.println("Speed MPH: ");
+    Serial.println(gps.speed.mph());
+    Serial.println("Altitude: ");
+    Serial.println(gps.altitude.feet());
+    Serial.println("");
+  }
+	
+	//Serial.println(amp*sin(radian));
+	//radian = radian + pi/divider;
+
+	//if(radian == pi) {
+	//	radian = pi/divider;
+	//}
 }
