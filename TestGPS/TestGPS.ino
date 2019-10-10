@@ -1,4 +1,6 @@
-// Test voor de Arduino, en hopelijk zonder toeters en belletjes...
+// Test GPS voor de Arduino
+
+
 #include "TinyGPS++.h"
 #include "SoftwareSerial.h"
 

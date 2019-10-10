@@ -1,0 +1,16 @@
+iets van 8 koffers
+1 hoofdkoffer/unit
+
+punten verzamelen met de koffers, door opdrachten te doen.
+punten declareren bij hoofd-unit.
+zodra genoeg punten gaat hoofd-unit open/spel gewonnen.
+
+
+in koffers:
+display
+gyroscoop
+LED's
+GPS
+keypad
+knop
+aan/uit systeem?
