@@ -7,10 +7,10 @@ zodra genoeg punten gaat hoofd-unit open/spel gewonnen.
 
 
 in koffers:
-display
+/?	display
 gyroscoop
 LED's
-GPS
-keypad
+/	GPS
+/	keypad
 knop
 aan/uit systeem?
