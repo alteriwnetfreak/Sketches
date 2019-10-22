@@ -8,7 +8,13 @@
 
 MPU6050 mpu;
 
+//#define OUTPUT_READABLE_QUATERNION
+//#define OUTPUT_READABLE_EULER
 #define OUTPUT_READABLE_YAWPITCHROLL
+//#define OUTPUT_READABLE_REALACCEL
+//#define OUTPUT_READABLE_WORLDACCEL
+//#define OUTPUT_TEAPOT
+
 #define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 

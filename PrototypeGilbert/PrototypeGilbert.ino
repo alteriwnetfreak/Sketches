@@ -1,8 +1,11 @@
 //----------------------------------------------------
-// Keypad test
+// Prototype GilbertSpel
 //----------------------------------------------------
 
-// Including keypad
+
+//*********************************************
+//Include Keypad
+//*********************************************
 #include <Keypad.h>
 
 const byte ROWS = 4; 
@@ -27,10 +30,21 @@ char hexaKeys[ROWS][COLS] = {
 //          |           |
 //          | *   0   # |
 //          -------------
-byte colPins[COLS] = {7, 8, 9}; 
+byte colPins[COLS] = {A2, A1, A0}; 
 byte rowPins[ROWS] = {10, 11, 12, 13}; 
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+
+
+//*********************************************
+//Include GPS
+//*********************************************
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+
+SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
+TinyGPSPlus gps;
+
 
 
 // Global Variables | Keypad
@@ -44,13 +58,12 @@ char passWordReset[passwordLength] = "2#111";
 bool passwordBeingReset = false;
 
 
-void setup(){
-	Serial.begin(9600);
-	Serial.println("Voer wachtwoord in: ");
+void setup() {
+  
 }
 
-void loop(){
-	giveData();
+void loop() {
+		giveData();
 
 	if(!passwordBeingReset) {
 		if(dataCount == passwordLength - 1) {
@@ -94,5 +107,3 @@ void clearData() {
 	}
 	dataCount = 0;
 }
-/*
-*/
