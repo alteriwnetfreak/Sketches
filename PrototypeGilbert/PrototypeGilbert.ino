@@ -4,7 +4,7 @@
 
 
 //*********************************************
-//Include Keypad
+// Include Keypad
 //*********************************************
 #include <Keypad.h>
 
@@ -30,22 +30,10 @@ char hexaKeys[ROWS][COLS] = {
 //          |           |
 //          | *   0   # |
 //          -------------
-byte colPins[COLS] = {A2, A1, A0}; 
+byte colPins[COLS] = {7, 8, 9}; 
 byte rowPins[ROWS] = {10, 11, 12, 13}; 
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-
-
-//*********************************************
-//Include GPS
-//*********************************************
-#include <TinyGPS++.h>
-#include <SoftwareSerial.h>
-
-SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
-TinyGPSPlus gps;
-
-
 
 // Global Variables | Keypad
 int dataCount = 0;
@@ -54,27 +42,91 @@ int dataCount = 0;
 char data[passwordLength] = "";
 char passWord[passwordLength] = "21199";
 char passWordReset[passwordLength] = "2#111";
-
 bool passwordBeingReset = false;
 
 
+//*********************************************
+// Include GPS
+//*********************************************
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+
+SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
+TinyGPSPlus gps;
+
+
+//*********************************************
+// Include LCD
+//*********************************************
+#include <LiquidCrystal.h>
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+//const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2; // Digital pins
+const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0; // Analog pins
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+
+
+//*********************************************
+// Setup
+//*********************************************
 void setup() {
-  
+  lcd.begin(16, 2);
+  Serial.begin(4800);
+
+  lcd.print("Voer wachtwoord in: ");
 }
 
+
+//*********************************************
+// Loop
+//*********************************************
 void loop() {
-		giveData();
+	// GPS
+	while(serial_connection.available()) {
+		gps.encode(serial_connection.read());
+	}
+
+	if(gps.location.isUpdated()) {
+		//Serial.println("Satellite count: ");
+		//Serial.println(gps.satellites.value());
+		Serial.println("Latitude: ");
+		Serial.println(gps.location.lat(), 6);
+		Serial.println("Longitude: ");
+		Serial.println(gps.location.lng(), 6);
+		// Serial.println("Speed MPH: ");
+		// Serial.println(gps.speed.mph());
+		// Serial.println("Altitude: ");
+		// Serial.println(gps.altitude.feet());
+		Serial.println("");
+	}
+
+	// Keypad | LCD-scherm
+	giveData();
 
 	if(!passwordBeingReset) {
 		if(dataCount == passwordLength - 1) {
 			if(!strcmp(data, passWord)) {
-				Serial.println("Correct!");
+				//Serial.println("Correct!");
+				lcd.clear();
+				lcd.home();
+				lcd.print("Correct!");
 			} else if(!strcmp(data, passWordReset)) {
-				Serial.println("New Pass: ");
+				//Serial.println("New Pass: ");
+				lcd.clear();
+				lcd.home();
+				lcd.print("New Pass: ");
+
 				passwordBeingReset = !passwordBeingReset;
 			} else {
-				Serial.println("Incorrect!");
-				Serial.println("Try Again...");
+				//Serial.println("Incorrect!");
+				//Serial.println("Try Again...");
+				lcd.clear();
+				lcd.home();
+				lcd.print("Incorrect!");
+				lcd.setCursor(0, 1);
+				lcd.print("Try again...");
 			}
 			clearData();
 		}
@@ -83,8 +135,12 @@ void loop() {
 			passWord[i] = data[i];
 		}
 		if(dataCount == passwordLength - 1) {
-			Serial.print("New Pass: ");
-			Serial.println(passWord);
+			//Serial.print("New Pass: ");
+			//Serial.println(passWord);
+			lcd.home();
+			lcd.print("New Pass: ");
+			lcd.print(passWord);
+			lcd.print("!");
 			clearData();
 			passwordBeingReset = !passwordBeingReset;
 		}
@@ -96,7 +152,9 @@ char* giveData() {
 	if(customKey) {
 		data[dataCount] = customKey;
 		dataCount++;
-		Serial.println(data);
+		//Serial.println(data);
+		lcd.setCursor(0, 1);
+		lcd.print(data);
 	}
 	return data;
 }
