@@ -18,21 +18,21 @@ TinyGPSPlus gps;
 //*********************************************
 // SINUS VARIABLES
 //*********************************************
-float rad_nr = 10.0; // pi = 3.14159
-int rad_divider = 11;
-float radian = rad_nr/rad_divider;
+// float rad_nr = 10.0; // pi = 3.14159
+// int rad_divider = 11;
+// float radian = rad_nr/rad_divider;
 
-float lvler = 140.8;
-float amp;
+// float lvler = 140.8;
+// float amp;
 
-int potPin = 1; // Pin voor de PotentioMeter: A1
-float potVal = 0.0;
+// int potPin = 1; // Pin voor de PotentioMeter: A1
+// float potVal = 0.0;
 
 
 void setup() {
 	Serial.begin(4800); 
-	// serial_connection.begin(4800);
-	// Serial.println("GPS Start!");
+	serial_connection.begin(4800);
+	Serial.println("GPS Start!");
 }
 
 void loop() {
@@ -42,10 +42,10 @@ void loop() {
 	while(serial_connection.available()) {
 		gps.encode(serial_connection.read());
 	}
-
+	
 	if(gps.location.isUpdated()) {
-		//Serial.println("Satellite count: ");
-		//Serial.println(gps.satellites.value());
+		Serial.println("Satellite count: ");
+		Serial.println(gps.satellites.value());
 		Serial.println("Latitude: ");
 		Serial.println(gps.location.lat(), 6);
 		Serial.println("Longitude: ");
