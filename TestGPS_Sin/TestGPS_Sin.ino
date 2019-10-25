@@ -2,8 +2,8 @@
 // Test GPS voor de Arduino
 //----------------------------------------------------
 
-// COÖRDINATEN MIJN HUIS: 51.9776302, 5.6566043
 // COÖRDINATEN CIRCLE: 52.024669, 5.5557331
+// COÖRDINATEN MIJN HUIS: 51.9776302, 5.6566043
 
 //*********************************************
 // Include GPS
@@ -30,8 +30,8 @@ TinyGPSPlus gps;
 
 
 void setup() {
-	Serial.begin(4800); 
-	serial_connection.begin(4800);
+	Serial.begin(2400); 
+	serial_connection.begin(9600);
 	Serial.println("GPS Start!");
 }
 
