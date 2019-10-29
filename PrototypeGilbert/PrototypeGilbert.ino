@@ -56,10 +56,11 @@ TinyGPSPlus gps;
 
 // Variables | GPS
 // Posities om te testen LAT/LNG
-float constrain1[] = { 52.024295, 5.554947 };
-float constrain2[] = { 52.024705, 5.556341 };
-float myLAT;
-float myLNG;
+float locatie1[] = { 52.024295, 5.554947 };
+float locatie2[] = { 52.024705, 5.556341 };
+
+float myLAT, myLNG;
+int multiplier = 1000000;
 
 //*********************************************
 // Include LCD
@@ -104,10 +105,9 @@ void loop() {
 
 		lcd.clear();
 		lcd.home();
-		lcd.print(myLAT, 6);
+		lcd.print((locatie1[0] / myLAT - 1) * multiplier);
 		lcd.setCursor(0, 1);
-		lcd.print(myLNG, 6);
-
+		lcd.print((locatie1[1] / myLNG - 1) * multiplier);
 
 		Serial.println("Satellite count: ");
 		Serial.println(gps.satellites.value());
@@ -123,51 +123,49 @@ void loop() {
 	}
 
 
-	
+	// // Keypad | LCD-scherm
+	// giveData();
 
-// 	// Keypad | LCD-scherm
-// 	giveData();
+	// if(!passwordBeingReset) {
+	// 	if(dataCount == passwordLength - 1) {
+	// 		if(!strcmp(data, passWord)) {
+	// 			//Serial.println("Correct!");
+	// 			lcd.clear();
+	// 			lcd.home();
+	// 			lcd.print("Correct!");
+	// 		} else if(!strcmp(data, passWordReset)) {
+	// 			//Serial.println("New Pass: ");
+	// 			lcd.clear();
+	// 			lcd.home();
+	// 			lcd.print("New Pass: ");
 
-// 	if(!passwordBeingReset) {
-// 		if(dataCount == passwordLength - 1) {
-// 			if(!strcmp(data, passWord)) {
-// 				//Serial.println("Correct!");
-// 				lcd.clear();
-// 				lcd.home();
-// 				lcd.print("Correct!");
-// 			} else if(!strcmp(data, passWordReset)) {
-// 				//Serial.println("New Pass: ");
-// 				lcd.clear();
-// 				lcd.home();
-// 				lcd.print("New Pass: ");
-
-// 				passwordBeingReset = !passwordBeingReset;
-// 			} else {
-// 				//Serial.println("Incorrect!");
-// 				//Serial.println("Try Again...");
-// 				lcd.clear();
-// 				lcd.home();
-// 				lcd.print("Incorrect!");
-// 				lcd.setCursor(0, 1);
-// 				lcd.print("Try again...");
-// 			}
-// 			clearData();
-// 		}
-// 	} else {
-// 		for(int i = 0; i < passwordLength - 1; i++) {
-// 			passWord[i] = data[i];
-// 		}
-// 		if(dataCount == passwordLength - 1) {
-// 			//Serial.print("New Pass: ");
-// 			//Serial.println(passWord);
-// 			lcd.home();
-// 			lcd.print("New Pass: ");
-// 			lcd.print(passWord);
-// 			lcd.print("!");
-// 			clearData();
-// 			passwordBeingReset = !passwordBeingReset;
-// 		}
-// 	}
+	// 			passwordBeingReset = !passwordBeingReset;
+	// 		} else {
+	// 			//Serial.println("Incorrect!");
+	// 			//Serial.println("Try Again...");
+	// 			lcd.clear();
+	// 			lcd.home();
+	// 			lcd.print("Incorrect!");
+	// 			lcd.setCursor(0, 1);
+	// 			lcd.print("Try again...");
+	// 		}
+	// 		clearData();
+	// 	}
+	// } else {
+	// 	for(int i = 0; i < passwordLength - 1; i++) {
+	// 		passWord[i] = data[i];
+	// 	}
+	// 	if(dataCount == passwordLength - 1) {
+	// 		//Serial.print("New Pass: ");
+	// 		//Serial.println(passWord);
+	// 		lcd.home();
+	// 		lcd.print("New Pass: ");
+	// 		lcd.print(passWord);
+	// 		lcd.print("!");
+	// 		clearData();
+	// 		passwordBeingReset = !passwordBeingReset;
+	// 	}
+	// }
 }
 
 // char* giveData() {
