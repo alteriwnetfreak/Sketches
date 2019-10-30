@@ -56,11 +56,16 @@ TinyGPSPlus gps;
 
 // Variables | GPS
 // Posities om te testen LAT/LNG
-float locatie1[] = { 52.024295, 5.554947 };
+float locatie[][2] = { 
+	{ 52.025210, 5.555854 },
+	{ 52.024705, 5.556341 }
+};
 float locatie2[] = { 52.024705, 5.556341 };
 
 float myLAT, myLNG;
+float distanceLAT, distanceLNG;
 int multiplier = 1000000;
+
 
 //*********************************************
 // Include LCD
@@ -84,7 +89,9 @@ void setup() {
   serial_connection.begin(9600);
 
   //lcd.print("Voer wachtwoord in: ");
-  lcd.print("Testing GPS");
+  lcd.print("Setting up GPS..");
+  lcd.setCursor(0, 1);
+  lcd.print("Pls go outside");
 }
 
 
@@ -93,8 +100,6 @@ void setup() {
 //*********************************************
 void loop() {
 	// GPS
-		
-	// GPS test
 	while(serial_connection.available()) {
 		gps.encode(serial_connection.read());
 	}
@@ -102,24 +107,31 @@ void loop() {
 	if(gps.location.isUpdated()) {
 		myLAT = gps.location.lat();
 		myLNG = gps.location.lng();
+		distanceLAT = (myLAT / locatie[0][0] - 1) * multiplier;
+		distanceLNG = (myLNG / locatie[0][1] - 1) * multiplier;
+
+		if((distanceLAT < 0.1) & (distanceLNG < 0.1)) {
+			lcd.clear();
+			lcd.print("Je bent er!!!");
+		}
 
 		lcd.clear();
 		lcd.home();
-		lcd.print((locatie1[0] / myLAT - 1) * multiplier);
+		lcd.print(distanceLAT);
 		lcd.setCursor(0, 1);
-		lcd.print((locatie1[1] / myLNG - 1) * multiplier);
+		lcd.print(distanceLNG);
 
-		Serial.println("Satellite count: ");
-		Serial.println(gps.satellites.value());
-		Serial.println("Latitude: ");
-		Serial.println(myLAT, 6);
-		Serial.println("Longitude: ");
-		Serial.println(myLNG, 6);
-		// Serial.println("Speed MPH: ");
-		// Serial.println(gps.speed.mph());
-		// Serial.println("Altitude: ");
-		// Serial.println(gps.altitude.feet());
-		Serial.println("");
+		// Serial.println("Satellite count: ");
+		// Serial.println(gps.satellites.value());
+		// Serial.println("Latitude: ");
+		// Serial.println(myLAT, 6);
+		// Serial.println("Longitude: ");
+		// Serial.println(myLNG, 6);
+		// // Serial.println("Speed MPH: ");
+		// // Serial.println(gps.speed.mph());
+		// // Serial.println("Altitude: ");
+		// // Serial.println(gps.altitude.feet());
+		// Serial.println("");
 	}
 
 
