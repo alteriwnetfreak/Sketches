@@ -44,16 +44,16 @@ void loop() {
 	}
 	
 	if(gps.location.isUpdated()) {
-		Serial.println("Satellite count: ");
+		Serial.print("Satellite count: ");
 		Serial.println(gps.satellites.value());
-		Serial.println("Latitude: ");
+		Serial.print("Latitude: ");
 		Serial.println(gps.location.lat(), 6);
-		Serial.println("Longitude: ");
+		Serial.print("Longitude: ");
 		Serial.println(gps.location.lng(), 6);
-		// Serial.println("Speed MPH: ");
-		// Serial.println(gps.speed.mph());
-		// Serial.println("Altitude: ");
-		// Serial.println(gps.altitude.feet());
+		Serial.print("Speed MPH: ");
+		Serial.println(gps.speed.mph());
+		Serial.print("Altitude: ");
+		Serial.println(gps.altitude.feet());
 		Serial.println("");
 	}
 	

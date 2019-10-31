@@ -20,16 +20,16 @@ char hexaKeys[ROWS][COLS] = {
 
 //On keypad-board, from left to right
 //Connect to pins: 7 to 13
-//   -->      /////// /
-//          -------------
-//          | 1   2   3 |
-//          |           |
-//          | 4   5   6 |
-//          |           |
-//          | 7   8   9 |
-//          |           |
-//          | *   0   # |
-//          -------------
+//  -->    /////// /
+//		 -------------
+//		 | 1   2   3 |
+//		 |           |
+//		 | 4   5   6 |
+//		 |           |
+//		 | 7   8   9 |
+//		 |           |
+//		 | *   0   # |
+//		 -------------
 byte colPins[COLS] = {7, 8, 9}; 
 byte rowPins[ROWS] = {10, 11, 12, 13}; 
 
@@ -55,16 +55,22 @@ SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 
 // Variables | GPS
-// Posities om te testen LAT/LNG
+bool onDestination = false;
+
 float locatie[][2] = { 
 	{ 52.025210, 5.555854 },
-	{ 52.024705, 5.556341 }
+	{ 52.026478, 5.556792 },
+	{ 52.025814, 5.557516 },
+	{ 52.024656, 5.556728 },
+	{ 52.023989, 5.556685 },
+	{ 52.024649, 5.555698 }
 };
-float locatie2[] = { 52.024705, 5.556341 };
+int nextLocation = 0;
 
 float myLAT, myLNG;
 float distanceLAT, distanceLNG;
-int multiplier = 1000000;
+float disToDes;
+int multiplier = 10000000;
 
 
 //*********************************************
@@ -83,15 +89,16 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 //*********************************************
 // Setup
 //*********************************************
-void setup() {
-  lcd.begin(16, 2);
-  Serial.begin(2400);
-  serial_connection.begin(9600);
+uint32_t recordedTime = 0;
 
-  //lcd.print("Voer wachtwoord in: ");
-  lcd.print("Setting up GPS..");
-  lcd.setCursor(0, 1);
-  lcd.print("Pls go outside");
+void setup() {
+	lcd.begin(16, 2);
+	Serial.begin(2400);
+	serial_connection.begin(9600);
+
+	lcd.print("Setting up GPS..");
+	lcd.setCursor(0, 1);
+	lcd.print("Pls go outside");
 }
 
 
@@ -104,97 +111,98 @@ void loop() {
 		gps.encode(serial_connection.read());
 	}
 	
-	if(gps.location.isUpdated()) {
-		myLAT = gps.location.lat();
-		myLNG = gps.location.lng();
-		distanceLAT = (myLAT / locatie[0][0] - 1) * multiplier;
-		distanceLNG = (myLNG / locatie[0][1] - 1) * multiplier;
+	if(!onDestination) {
+		if(gps.location.isUpdated()) {
+			myLAT = gps.location.lat();
+			myLNG = gps.location.lng();
+			distanceLAT = (myLAT / locatie[nextLocation][0] - 1) * multiplier;
+			distanceLNG = (myLNG / locatie[nextLocation][1] - 1) * multiplier;
+			disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
+			
+			// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
+			if(disToDes < 0.2 && disToDes > -0.2) {
+				lcd.clear();
+				lcd.home();
+				lcd.print("Password: ");
 
-		if((distanceLAT < 0.1) & (distanceLNG < 0.1)) {
-			lcd.clear();
-			lcd.print("Je bent er!!!");
+				onDestination = !onDestination;
+			} else {
+				lcd.clear();
+				lcd.home();
+				// lcd.print(distanceLAT);
+				// lcd.setCursor(0, 1);
+				// lcd.print(distanceLNG);
+				lcd.print("Prox: ");
+				lcd.setCursor(0, 1);
+				lcd.print(disToDes);
+			}
 		}
+	} else {
+		// Keypad | LCD-scherm
+		giveData();
+		if(!passwordBeingReset) {
+			if(dataCount == passwordLength - 1) {
+				if(!strcmp(data, passWord)) {
+					//recordedTime = millis();
+					nextLocation++;
 
-		lcd.clear();
-		lcd.home();
-		lcd.print(distanceLAT);
-		lcd.setCursor(0, 1);
-		lcd.print(distanceLNG);
+					//Serial.println("Correct!");
+					lcd.clear();
+					lcd.home();
+					lcd.print("Correct!");
 
-		// Serial.println("Satellite count: ");
-		// Serial.println(gps.satellites.value());
-		// Serial.println("Latitude: ");
-		// Serial.println(myLAT, 6);
-		// Serial.println("Longitude: ");
-		// Serial.println(myLNG, 6);
-		// // Serial.println("Speed MPH: ");
-		// // Serial.println(gps.speed.mph());
-		// // Serial.println("Altitude: ");
-		// // Serial.println(gps.altitude.feet());
-		// Serial.println("");
+					onDestination = !onDestination;
+				} else if(!strcmp(data, passWordReset)) {
+					//Serial.println("New Pass: ");
+					lcd.clear();
+					lcd.home();
+					lcd.print("New Pass: ");
+
+					passwordBeingReset = !passwordBeingReset;
+				} else {
+					//Serial.println("Incorrect!");
+					//Serial.println("Try Again...");
+					lcd.clear();
+					lcd.home();
+					lcd.print("Incorrect!");
+					lcd.setCursor(0, 1);
+					lcd.print("Try again...");
+				}
+				clearData();
+			}
+		} else {
+			for(int i = 0; i < passwordLength - 1; i++) {
+				passWord[i] = data[i];
+			}
+			if(dataCount == passwordLength - 1) {
+				//Serial.print("New Pass: ");
+				//Serial.println(passWord);
+				lcd.home();
+				lcd.print("New Pass: ");
+				lcd.print(passWord);
+				lcd.print("!");
+				clearData();
+				passwordBeingReset = !passwordBeingReset;
+			}
+		}
 	}
-
-
-	// // Keypad | LCD-scherm
-	// giveData();
-
-	// if(!passwordBeingReset) {
-	// 	if(dataCount == passwordLength - 1) {
-	// 		if(!strcmp(data, passWord)) {
-	// 			//Serial.println("Correct!");
-	// 			lcd.clear();
-	// 			lcd.home();
-	// 			lcd.print("Correct!");
-	// 		} else if(!strcmp(data, passWordReset)) {
-	// 			//Serial.println("New Pass: ");
-	// 			lcd.clear();
-	// 			lcd.home();
-	// 			lcd.print("New Pass: ");
-
-	// 			passwordBeingReset = !passwordBeingReset;
-	// 		} else {
-	// 			//Serial.println("Incorrect!");
-	// 			//Serial.println("Try Again...");
-	// 			lcd.clear();
-	// 			lcd.home();
-	// 			lcd.print("Incorrect!");
-	// 			lcd.setCursor(0, 1);
-	// 			lcd.print("Try again...");
-	// 		}
-	// 		clearData();
-	// 	}
-	// } else {
-	// 	for(int i = 0; i < passwordLength - 1; i++) {
-	// 		passWord[i] = data[i];
-	// 	}
-	// 	if(dataCount == passwordLength - 1) {
-	// 		//Serial.print("New Pass: ");
-	// 		//Serial.println(passWord);
-	// 		lcd.home();
-	// 		lcd.print("New Pass: ");
-	// 		lcd.print(passWord);
-	// 		lcd.print("!");
-	// 		clearData();
-	// 		passwordBeingReset = !passwordBeingReset;
-	// 	}
-	// }
 }
 
-// char* giveData() {
-// 	char customKey = customKeypad.getKey();
-// 	if(customKey) {
-// 		data[dataCount] = customKey;
-// 		dataCount++;
-// 		//Serial.println(data);
-// 		lcd.setCursor(0, 1);
-// 		lcd.print(data);
-// 	}
-// 	return data;
-// }
+char* giveData() {
+	char customKey = customKeypad.getKey();
+	if(customKey) {
+		data[dataCount] = customKey;
+		dataCount++;
+		//Serial.println(data);
+		lcd.setCursor(0, 1);
+		lcd.print(data);
+	}
+	return data;
+}
 
-// void clearData() {
-// 	for(int i = 0; i < passwordLength; i++) {
-// 		data[i] = 0;
-// 	}
-// 	dataCount = 0;
-// }
+void clearData() {
+	for(int i = 0; i < passwordLength; i++) {
+		data[i] = 0;
+	}
+	dataCount = 0;
+}
