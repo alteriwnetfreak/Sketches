@@ -40,7 +40,7 @@ int dataCount = 0;
 #define passwordLength 6
 
 char data[passwordLength] = "";
-char passWord[passwordLength] = "21199";
+char passWord[][passwordLength] = { "21199", "69666", "21420", "11111", "11*22", "22#33" };
 char passWordReset[passwordLength] = "2#111";
 bool passwordBeingReset = false;
 
@@ -142,7 +142,7 @@ void loop() {
 		giveData();
 		if(!passwordBeingReset) {
 			if(dataCount == passwordLength - 1) {
-				if(!strcmp(data, passWord)) {
+				if(!strcmp(data, passWord[nextLocation])) {
 					//recordedTime = millis();
 					nextLocation++;
 
@@ -172,14 +172,14 @@ void loop() {
 			}
 		} else {
 			for(int i = 0; i < passwordLength - 1; i++) {
-				passWord[i] = data[i];
+				passWord[nextLocation][i] = data[i];
 			}
 			if(dataCount == passwordLength - 1) {
 				//Serial.print("New Pass: ");
 				//Serial.println(passWord);
 				lcd.home();
 				lcd.print("New Pass: ");
-				lcd.print(passWord);
+				lcd.print(passWord[nextLocation]);
 				lcd.print("!");
 				clearData();
 				passwordBeingReset = !passwordBeingReset;
