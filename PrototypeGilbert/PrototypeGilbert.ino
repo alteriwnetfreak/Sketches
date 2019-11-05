@@ -2,7 +2,6 @@
 // Prototype GilbertSpel
 //----------------------------------------------------
 
-
 //*********************************************
 // Include Keypad
 //*********************************************
@@ -85,6 +84,17 @@ const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0; // Analog pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
+//*********************************************
+// Include FastLED
+//*********************************************
+#include <FastLED.h>
+
+#define PIN 6
+#define NUM_LEDS 1
+
+CRGB leds[NUM_LEDS];
+
+
 
 //*********************************************
 // Setup
@@ -95,6 +105,12 @@ void setup() {
 	lcd.begin(16, 2);
 	Serial.begin(2400);
 	serial_connection.begin(9600);
+	
+	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
+	for(int x=0; x<NUM_LEDS; x++){
+	    writeLED('R', x);
+	}
+	FastLED.show();
 
 	lcd.print("Setting up GPS..");
 	lcd.setCursor(0, 1);
@@ -143,14 +159,15 @@ void loop() {
 		if(!passwordBeingReset) {
 			if(dataCount == passwordLength - 1) {
 				if(!strcmp(data, passWord[nextLocation])) {
-					//recordedTime = millis();
-					nextLocation++;
-
 					//Serial.println("Correct!");
 					lcd.clear();
 					lcd.home();
 					lcd.print("Correct!");
-
+					
+					writeLED('B', nextLocation);
+					FastLED.show();
+					
+					nextLocation++;
 					onDestination = !onDestination;
 				} else if(!strcmp(data, passWordReset)) {
 					//Serial.println("New Pass: ");
@@ -188,6 +205,7 @@ void loop() {
 	}
 }
 
+// Functions Keypad
 char* giveData() {
 	char customKey = customKeypad.getKey();
 	if(customKey) {
@@ -205,4 +223,17 @@ void clearData() {
 		data[i] = 0;
 	}
 	dataCount = 0;
+}
+
+// functions LEDs
+void writeLED(char color, int led) {
+	if (color == 'R'){ 
+    	leds[led] = CRGB::Red; 
+	} else if (color == 'G') { 
+    	leds[led] = CRGB::Green; 
+	} else if (color == 'B') { 
+    	leds[led] = CRGB::Blue; 
+	} else if (color == ' ') { 
+    	leds[led] = CRGB::Black; 
+	}
 }
