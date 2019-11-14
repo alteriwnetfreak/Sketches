@@ -11,10 +11,10 @@ const byte ROWS = 4;
 const byte COLS = 3; 
 
 char hexaKeys[ROWS][COLS] = {
-	{'1', '2', '3'},
-	{'4', '5', '6'},
-	{'7', '8', '9'},
-	{'*', '0', '#'}
+	{ '1', '2', '3' },
+	{ '4', '5', '6' },
+	{ '7', '8', '9' },
+	{ '*', '0', '#' }
 };
 
 //On keypad-board, from left to right
@@ -43,7 +43,9 @@ int dataCount = 0;
 #define passwordLength 6
 
 char data[passwordLength] = "";
-char passWord[][passwordLength] = { "21199", "69666", "21420", "11111", "11*22", "22#33", "03159", "00004",  "**#*#", "##*#*"};
+char passWord[][passwordLength] = {
+	"21199", "69666", "21420", "11111", "11*22", "22#33", "03159", "00004",  "**#*#", "##*#*"
+};
 char passWordReset[passwordLength] = "2#111";
 bool passwordBeingReset = false;
 
@@ -78,7 +80,7 @@ int nextLocation = 0;
 float myLAT, myLNG;
 float distanceLAT, distanceLNG;
 float disToDes;
-int multiplier = 10000000;
+int multiplier = 1000000;
 
 
 //*********************************************
@@ -140,7 +142,6 @@ void setup() {
 	// setupMPU();
 }
 
-
 //*********************************************
 // Loop
 //*********************************************
@@ -172,7 +173,7 @@ void loop() {
 				// lcd.print(distanceLNG);
 				lcd.print("Proximity:");
 				lcd.setCursor(0, 1);
-				lcd.print(disToDes);
+				lcd.print(disToDes * 100);
 			}
 		}
 	} else {

@@ -26,34 +26,69 @@ float locatie[][2] = {
 	{ 01.123456, 0.123456 },
 	{ 12.345678, 2.345678 },
 	{ 23.456789, 3.456789 },
-	{ 34.567890, 4.567890 }
+	{ 34.567890, 4.567890 },
+	{ 45.678901, 5.678901 },
+	{ 56.789012, 6.789012 }
 };
+byte locatieLength = sizeof(locatie) / sizeof(locatie[0]);
+
+int password[12] = { 0000, 1111, 2222, 3333, 4444, 5555, 6666, 7777, 8888, 9999, 1234, 6789 };
+
+
+float valueF;
+int valueI;
+bool programmerMode = false;
 
 void setup() {
 	Serial.begin(9600);
+	//Serial.println(locatieLength);
 
-	for(int i = 0; i < locatie[].length; i++) {
-		EEPROM.put(i * 8, locatie[i][0]);
-		Serial.println(EEPROM.get(0, value1), 7);
-		
-		Serial.println("");
+	EEPROM_write();
 
-		EEPROM.put(i * 8 + 4, locatie[i][1]);
-		Serial.println(EEPROM.get(0, value1), 7);
+	Serial.println("");
+	Serial.println("");
 
-		Serial.println("");
-	}
+	EEPROM_read();
 
-	for(int o = 0; o < locatie[].length; o++) {
-		EEPROM.get(o * sizeof(float))
-	}
-	
 	Serial.println("Klaar!");
-
-
-	// EEPROM.write(0, valToInt1);
-	// Serial.println(EEPROM.read(0));
 }
 
-void loop() {}
+void loop() {
+	// if(!programmerMode) {
+	// 	delay(5000);
+	// 	programmerMode = !programmerMode;
+	// } else {
+	// 	EEPROM_write();
+	// 	EEPROM_read();
+	// 	programmerMode = !programmerMode;
+	// }
+}
+
+void EEPROM_write() {
+	for(int i = 0; i < locatieLength; i++) {
+		EEPROM.put(i * (2*sizeof(float)), locatie[i][0]);
+		EEPROM.put(i * (2*sizeof(float)) + 4, locatie[i][1]);
+		Serial.println(i * (2*sizeof(float)));
+		Serial.println(i * (2*sizeof(float)) + 4);
+	}
+
+	for(int i = 0; i < locatieLength; i++) {
+		EEPROM.put(i * (sizeof(int)) + 120, password[i]);
+		Serial.println(i * (sizeof(int)) + 120);
+	}
+}
+
+void EEPROM_read() {
+	for(int i = 0; i < locatieLength; i++) {
+		Serial.print(EEPROM.get(i * (2*sizeof(float)), valueF), 7);
+		Serial.print("\t");
+		Serial.println(EEPROM.get(i * (2*sizeof(float)) + 4, valueF), 7);
+	}
+
+	Serial.println("");
+
+	for(int i = 0; i < locatieLength; i++) {
+		Serial.println(EEPROM.get(i * sizeof(int) + 120, valueI));
+	}
+}
 

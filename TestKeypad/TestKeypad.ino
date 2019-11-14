@@ -9,10 +9,10 @@ const byte ROWS = 4;
 const byte COLS = 3; 
 
 char hexaKeys[ROWS][COLS] = {
-	{'1', '2', '3'},
-	{'4', '5', '6'},
-	{'7', '8', '9'},
-	{'*', '0', '#'}
+	{ '1', '2', '3' },
+	{ '4', '5', '6' },
+	{ '7', '8', '9' },
+	{ '.', '0', '#' }
 };
 
 //On keypad-board, from left to right
@@ -38,8 +38,9 @@ Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS)
 
 
 // Global Variables | Keypad
-int dataCount = 0;
+byte dataCount = 0;
 #define passwordLength 6
+#define latCOsize 10
 
 char data[passwordLength] = "";
 char passWord[passwordLength] = "21199";
@@ -47,6 +48,9 @@ char passWordReset[passwordLength] = "2#111";
 
 bool passwordBeingReset = false;
 
+char COdata[latCOsize] = "";
+char latCO[latCOsize] = "52.123456";
+double newLAT;
 
 void setup(){
 	Serial.begin(9600);
@@ -54,14 +58,15 @@ void setup(){
 }
 
 void loop(){
-	giveData();
-
 	if(!passwordBeingReset) {
+		giveData();
 		if(dataCount == passwordLength - 1) {
 			if(!strcmp(data, passWord)) {
 				Serial.println("Correct!");
 			} else if(!strcmp(data, passWordReset)) {
-				Serial.println("New Pass: ");
+				Serial.print("Old LAT Coördinate: ");
+				Serial.println(latCO);
+				
 				passwordBeingReset = !passwordBeingReset;
 			} else {
 				Serial.println("Incorrect!");
@@ -70,12 +75,20 @@ void loop(){
 			clearData();
 		}
 	} else {
-		for(int i = 0; i < passwordLength - 1; i++) {
-			passWord[i] = data[i];
+		giveCoordinate();
+
+		for(byte i = 0; i < latCOsize - 1; i++) {
+			latCO[i] = COdata[i];
+			
 		}
-		if(dataCount == passwordLength - 1) {
-			Serial.print("New Pass: ");
-			Serial.println(passWord);
+		if(dataCount == latCOsize - 1) {
+			Serial.print("New LAT Coördinate: ");
+			Serial.println(latCO);
+			
+			newLAT = atof(latCO);
+
+			Serial.println(newLAT, 6);
+			
 			clearData();
 			passwordBeingReset = !passwordBeingReset;
 		}
@@ -91,10 +104,22 @@ char* giveData() {
 	}
 	return data;
 }
+char* giveCoordinate() {
+	char customKey = customKeypad.getKey();
+	if(customKey) {
+		COdata[dataCount] = customKey;
+		dataCount++;
+		Serial.println(COdata);
+	}
+	return COdata;
+}
 
 void clearData() {
-	for(int i = 0; i < passwordLength; i++) {
+	for(byte i = 0; i < passwordLength; i++) {
 		data[i] = 0;
+	}
+	for(byte i = 0; i < latCOsize; i++) {
+		COdata[i] = 0;
 	}
 	dataCount = 0;
 }
