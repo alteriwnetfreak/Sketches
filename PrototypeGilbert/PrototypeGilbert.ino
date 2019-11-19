@@ -43,9 +43,7 @@ int dataCount = 0;
 #define passwordLength 6
 
 char data[passwordLength] = "";
-char passWord[][passwordLength] = {
-	"21199", "69666", "21420", "11111", "11*22", "22#33", "03159", "00004",  "**#*#", "##*#*"
-};
+char passWord[][passwordLength] = { "21199", "69666", "21420", "11111", "11*22", "22#33" };
 char passWordReset[passwordLength] = "2#111";
 bool passwordBeingReset = false;
 
@@ -70,17 +68,14 @@ float locatie[][2] = {
 	{ 52.024656, 5.556728 },
 	{ 52.023989, 5.556685 },
 	{ 52.024649, 5.555698 },
-	{ 01.123456, 0.123456 },
-	{ 12.345678, 2.345678 },
-	{ 23.456789, 3.456789 },
-	{ 34.567890, 4.567890 }
+
 };
-int nextLocation = 0;
+byte nextLocation = 0;
 
 float myLAT, myLNG;
 float distanceLAT, distanceLNG;
 float disToDes;
-int multiplier = 1000000;
+double multiplier = 1000000;
 
 
 //*********************************************
@@ -112,7 +107,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #include <Wire.h>
 
 long accelX, accelY, accelZ;
-int pitch, roll;
+byte pitch, roll;
 
 
 
@@ -124,10 +119,10 @@ void setup() {
 	lcd.begin(16, 2);
 	Serial.begin(2400);
 	serial_connection.begin(9600);
-	
+
 	// Initialize FastLED
 	// FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-	// for(int x=0; x<NUM_LEDS; x++){
+	// for(int x = 0; x < NUM_LEDS; x++){
 	//     writeLED('R', x);
 	// }
 	// FastLED.show();
@@ -138,7 +133,7 @@ void setup() {
 	lcd.print("Pls go outside");
 	
 	// Initialize interface to the MPU6050
-	Wire.begin();
+	// Wire.begin();
 	// setupMPU();
 }
 
@@ -154,33 +149,45 @@ void loop() {
 		if(gps.location.isUpdated()) {
 			myLAT = gps.location.lat();
 			myLNG = gps.location.lng();
-			distanceLAT = (myLAT / locatie[nextLocation][0] - 1) * multiplier;
+			distanceLAT = (myLAT / locatie[nextLocation][0] - 1) * multiplier; // multiplier hier(onder)
 			distanceLNG = (myLNG / locatie[nextLocation][1] - 1) * multiplier;
 			disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
-			
+
+			Serial.print(myLAT);
+			Serial.print("\t");
+			Serial.print(myLNG);
+			Serial.print("\t");
+			Serial.print(distanceLAT);
+			Serial.print("\t");
+			Serial.print(distanceLNG);
+			Serial.print("\t");
+			Serial.println(disToDes);
+
 			// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
-			if(disToDes < 0.2 && disToDes > -0.2) {
+			if(disToDes < 100 && disToDes > -100 && nextLocation != sizeof(locatie) / sizeof(locatie[0])) {
 				lcd.clear();
 				lcd.home();
 				lcd.print("Password: ");
+				lcd.print(passWord[nextLocation]);
+				Serial.println(passWord[nextLocation]);
+				Serial.println(nextLocation);
 
 				onDestination = !onDestination;
 			} else {
 				lcd.clear();
 				lcd.home();
-				// lcd.print(distanceLAT);
-				// lcd.setCursor(0, 1);
-				// lcd.print(distanceLNG);
+				// lcd.print(distanceLAT, 3);
+				// lcd.setCursor(8, 0);
+				// lcd.print(distanceLNG, 3);
 				lcd.print("Proximity:");
 				lcd.setCursor(0, 1);
-				lcd.print(disToDes * 100);
+				lcd.print(disToDes, 6);
 			}
 		}
 	} else {
 		giveData();
 		if(!passwordBeingReset && dataCount == passwordLength - 1) {
 			if(!strcmp(data, passWord[nextLocation])) {
-				//Serial.println("Correct!");
 				lcd.clear();
 				lcd.home();
 				lcd.print("Correct!");
@@ -190,25 +197,12 @@ void loop() {
 				
 				nextLocation++;
 				onDestination = !onDestination;
-			} else if(!strcmp(data, passWordReset)) {
-				//Serial.println("New Pass: ");
-				lcd.clear();
-				lcd.home();
-				lcd.print("New Pass: ");
-
-				passwordBeingReset = !passwordBeingReset;
 			} else {
-				//Serial.println("Incorrect!");
-				//Serial.println("Try Again...");
 				lcd.clear();
 				lcd.home();
 				lcd.print("Incorrect!");
-				lcd.setCursor(0, 1);
-				lcd.print("Try again...");
 			}
 			clearData();
-		} else {
-			givePassword();
 		}
 		
 		// // Gyroscope
@@ -256,30 +250,16 @@ char* giveData() {
 	if(customKey) {
 		data[dataCount] = customKey;
 		dataCount++;
-		//Serial.println(data);
+		Serial.println(data);
+		Serial.println(passWord[nextLocation]);
 		lcd.setCursor(0, 1);
 		lcd.print(data);
 	}
 	return data;
 }
-char givePassword() {
-	for(int i = 0; i < passwordLength - 1; i++) {
-		passWord[nextLocation][i] = data[i];
-	}
-	if(dataCount == passwordLength - 1) {
-		//Serial.print("New Pass: ");
-		//Serial.println(passWord);
-		lcd.home();
-		lcd.print("New Pass: ");
-		lcd.print(passWord[nextLocation]);
-		lcd.print("!");
-		clearData();
-		passwordBeingReset = !passwordBeingReset;
-	}
-	return passWord;
-}
+
 void clearData() {
-	for(int i = 0; i < passwordLength; i++) {
+	for(byte i = 0; i < passwordLength; i++) {
 		data[i] = 0;
 	}
 	dataCount = 0;

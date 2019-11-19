@@ -40,16 +40,22 @@ Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS)
 // Global Variables | Keypad
 byte dataCount = 0;
 #define passwordLength 6
+#define latCOamount 4
 #define latCOsize 10
 
 char data[passwordLength] = "";
 char passWord[passwordLength] = "21199";
-char passWordReset[passwordLength] = "2#111";
+char programmerMode[passwordLength] = "2#111";
 
-bool passwordBeingReset = false;
+bool pmSwitch = false;
 
 char COdata[latCOsize] = "";
-char latCO[latCOsize] = "52.123456";
+char latCO[latCOamount][latCOsize] = {
+	"52.123456",
+	"52.234567",
+	"52.345678",
+	"52.456789",
+};
 double newLAT;
 
 void setup(){
@@ -58,16 +64,17 @@ void setup(){
 }
 
 void loop(){
-	if(!passwordBeingReset) {
+	if(!pmSwitch) {
 		giveData();
 		if(dataCount == passwordLength - 1) {
 			if(!strcmp(data, passWord)) {
 				Serial.println("Correct!");
-			} else if(!strcmp(data, passWordReset)) {
-				Serial.print("Old LAT Coördinate: ");
-				Serial.println(latCO);
-				
-				passwordBeingReset = !passwordBeingReset;
+			} else if(!strcmp(data, programmerMode)) {
+				Serial.println("Old LAT Coördinates: ");
+				for(byte i = 0; i < latCOamount; i++) {
+					Serial.println(latCO[i]);
+				}
+				pmSwitch = !pmSwitch;
 			} else {
 				Serial.println("Incorrect!");
 				Serial.println("Try Again...");
@@ -78,19 +85,22 @@ void loop(){
 		giveCoordinate();
 
 		for(byte i = 0; i < latCOsize - 1; i++) {
-			latCO[i] = COdata[i];
-			
+			latCO[latCOamount][i] = COdata[i];
+
+			Serial.println(latCO[latCOamount][i]);
+			Serial.println(COdata);
 		}
+
 		if(dataCount == latCOsize - 1) {
 			Serial.print("New LAT Coördinate: ");
-			Serial.println(latCO);
+			Serial.println(latCO[latCOamount]);
 			
-			newLAT = atof(latCO);
+			newLAT = atof(latCO[latCOamount]);
 
 			Serial.println(newLAT, 6);
 			
 			clearData();
-			passwordBeingReset = !passwordBeingReset;
+			pmSwitch = !pmSwitch;
 		}
 	}
 }
