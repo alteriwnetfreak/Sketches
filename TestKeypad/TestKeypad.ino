@@ -27,12 +27,8 @@ char hexaKeys[ROWS][COLS] = {
 //          |           |
 //          | *   0   # |
 //          -------------
-// // DIGITAL
-// byte colPins[COLS] = { 7, 8, 9 };
-// byte rowPins[ROWS] = { 10, 11, 12, 13 };
-// // "ANALOG":
-byte colPins[COLS] = { 2, 5, 7 };
-byte rowPins[ROWS] = { A3, A2, A1, A0 };
+byte colPins[COLS] = {7, 8, 9}; 
+byte rowPins[ROWS] = {10, 11, 12, 13}; 
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 

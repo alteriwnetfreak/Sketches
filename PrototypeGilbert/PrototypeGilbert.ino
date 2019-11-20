@@ -29,12 +29,8 @@ char hexaKeys[ROWS][COLS] = {
 //		 |           |
 //		 | *   0   # |
 //		 -------------
-// // DIGITAL
-// byte colPins[COLS] = { 7, 8, 9 };
-// byte rowPins[ROWS] = { 10, 11, 12, 13 };
-// // "ANALOG":
-byte colPins[COLS] = { 2, 5, 7 };
-byte rowPins[ROWS] = { A3, A2, A1, A0 };
+byte colPins[COLS] = {7, 8, 9}; 
+byte rowPins[ROWS] = {10, 11, 12, 13}; 
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
@@ -54,7 +50,6 @@ bool passwordBeingReset = false;
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-// pins op de breadboard, van links naar rechts: --->	GND | TX-pin | RX-pin | VCC
 SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 
@@ -85,18 +80,18 @@ double multiplier = 1000000;
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
-const int rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
-//const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0; // Analog pins
+//const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2; // Digital pins
+const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0; // Analog pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
 //*********************************************
 // Include FastLED
 //*********************************************
-// #include <FastLED.h>
+#include <FastLED.h>
 
-// #define PIN 6
-// #define NUM_LEDS 1
+#define PIN 6
+#define NUM_LEDS 1
 
 // CRGB leds[NUM_LEDS];
 
@@ -114,8 +109,9 @@ byte pitch, roll;
 //*********************************************
 // Setup
 //*********************************************
+uint32_t recordedTime = 0;
+
 void setup() {
-	// Initialize LCD | Serial | SS
 	lcd.begin(16, 2);
 	Serial.begin(2400);
 	serial_connection.begin(9600);
@@ -135,12 +131,17 @@ void setup() {
 	// Initialize interface to the MPU6050
 	// Wire.begin();
 	// setupMPU();
+
+	lcd.print("Setting up GPS..");
+	lcd.setCursor(0, 1);
+	lcd.print("Pls go outside");
 }
 
 //*********************************************
 // Loop
 //*********************************************
 void loop() {
+	// GPS
 	while(serial_connection.available()) {
 		gps.encode(serial_connection.read());
 	}
@@ -203,6 +204,54 @@ void loop() {
 				lcd.print("Incorrect!");
 			}
 			clearData();
+		}
+		// Keypad | LCD-scherm
+		giveData();
+		if(!passwordBeingReset) {
+			if(dataCount == passwordLength - 1) {
+				if(!strcmp(data, passWord[nextLocation])) {
+					//Serial.println("Correct!");
+					lcd.clear();
+					lcd.home();
+					lcd.print("Correct!");
+					
+					writeLED('B', nextLocation);
+					FastLED.show();
+					
+					nextLocation++;
+					onDestination = !onDestination;
+				} else if(!strcmp(data, passWordReset)) {
+					//Serial.println("New Pass: ");
+					lcd.clear();
+					lcd.home();
+					lcd.print("New Pass: ");
+
+					passwordBeingReset = !passwordBeingReset;
+				} else {
+					//Serial.println("Incorrect!");
+					//Serial.println("Try Again...");
+					lcd.clear();
+					lcd.home();
+					lcd.print("Incorrect!");
+					lcd.setCursor(0, 1);
+					lcd.print("Try again...");
+				}
+				clearData();
+			}
+		} else {
+			for(int i = 0; i < passwordLength - 1; i++) {
+				passWord[nextLocation][i] = data[i];
+			}
+			if(dataCount == passwordLength - 1) {
+				//Serial.print("New Pass: ");
+				//Serial.println(passWord);
+				lcd.home();
+				lcd.print("New Pass: ");
+				lcd.print(passWord[nextLocation]);
+				lcd.print("!");
+				clearData();
+				passwordBeingReset = !passwordBeingReset;
+			}
 		}
 		
 		// // Gyroscope

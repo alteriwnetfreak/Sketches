@@ -19,18 +19,31 @@ tort or otherwise, arising from, out of or in connection with the software or th
 the software.
 */
 
+// #include <I2Cdev.h>
+// #include <MPU6050_6Axis_MotionApps_V6_12.h>
 #include <Wire.h>
 
 long accelX, accelY, accelZ;
 float gForceX, gForceY, gForceZ;
-int pitch, roll;
 // long gyroX, gyroY, gyroZ;
 // float rotX, rotY, rotZ;
+int pitch, roll;
+
+const int MPU = 0x68; // I2C address of the MPU6050 accelerometer
+
+int16_t AcX, AcY, AcZ;
+int pitch = 0;
+int roll = 0;
 
 void setup() {
-	Serial.begin(9600);
+	// Initialize interface to the MPU6050
 	Wire.begin();
-	setupMPU();
+	Wire.beginTransmission(MPU);
+	Wire.write(0x6B);
+	Wire.write(0);
+	Wire.endTransmission(true);
+
+	Serial.begin(19200);
 }
 
 
