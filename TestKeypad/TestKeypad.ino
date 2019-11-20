@@ -14,7 +14,6 @@ char hexaKeys[ROWS][COLS] = {
 	{ '7', '8', '9' },
 	{ '.', '0', '#' }
 };
-
 //On keypad-board, from left to right
 //Connect to pins: 7 to 13
 //   -->      /////// /
