@@ -16,7 +16,6 @@ char hexaKeys[ROWS][COLS] = {
 	{ '7', '8', '9' },
 	{ '*', '0', '#' }
 };
-
 //On keypad-board, from left to right
 //Connect to pins: 7 to 13
 //  -->    /////// /
@@ -43,7 +42,7 @@ int dataCount = 0;
 #define passwordLength 6
 
 char data[passwordLength] = "";
-char passWord[][passwordLength] = { "21199", "69666", "21420", "11111", "11*22", "22#33" };
+char passWord[][passwordLength] = { "21199", "69666", "21420", "11111" };
 char passWordReset[passwordLength] = "2#111";
 bool passwordBeingReset = false;
 
@@ -66,7 +65,6 @@ float locatie[][2] = {
 	{ 52.026478, 5.556792 },
 	{ 52.025814, 5.557516 },
 	{ 52.024656, 5.556728 },
-	{ 52.023989, 5.556685 },
 };
 byte nextLocation = 0;
 
@@ -102,14 +100,14 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 //*********************************************
 // Include Gyroscoop
 //*********************************************
-#include <Wire.h>
+// #include <Wire.h>
 
-const int MPU = 0x68; // I2C address of the MPU6050 accelerometer
+// const int MPU = 0x68; // I2C address of the MPU6050 accelerometer
 
-int16_t AcX, AcY, AcZ;
-int axis = 0;
-int pitch = 0;
-int roll = 0;
+// int16_t AcX, AcY, AcZ;
+// int axis = 0;
+// int pitch = 0;
+// int roll = 0;
 
 
 
