@@ -31,7 +31,7 @@ char hexaKeys[ROWS][COLS] = {
 // // DIGITAL
 // byte colPins[COLS] = { 7, 8, 9 };
 // byte rowPins[ROWS] = { 10, 11, 12, 13 };
-// // "ANALOG":
+// "ANALOG":
 byte colPins[COLS] = { 2, 5, 7 };
 byte rowPins[ROWS] = { A3, A2, A1, A0 };
 
@@ -159,15 +159,15 @@ void loop() {
 			distanceLNG = (myLNG / locatie[nextLocation][1] - 1) * multiplier;
 			disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
 
-			Serial.print(myLAT);
-			Serial.print("\t");
-			Serial.print(myLNG);
-			Serial.print("\t");
-			Serial.print(distanceLAT);
-			Serial.print("\t");
-			Serial.print(distanceLNG);
-			Serial.print("\t");
-			Serial.println(disToDes);
+			// Serial.print(myLAT);
+			// Serial.print("\t");
+			// Serial.print(myLNG);
+			// Serial.print("\t");
+			// Serial.print(distanceLAT);
+			// Serial.print("\t");
+			// Serial.print(distanceLNG);
+			// Serial.print("\t");
+			// Serial.println(disToDes);
 
 			// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
 			if(disToDes < 100 && disToDes > -100 && nextLocation != sizeof(locatie) / sizeof(locatie[0])) {
