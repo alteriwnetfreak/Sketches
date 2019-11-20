@@ -211,11 +211,11 @@ void loop() {
 				lcd.print("Incorrect!");
 			}
 			clearData();
+		}
 		if(nextLocation != 3) {
 			giveData();
 			if(!passwordBeingReset && dataCount == passwordLength - 1) {
 				if(!strcmp(data, passWord[nextLocation])) {
-					//Serial.println("Correct!");
 					lcd.clear();
 					lcd.home();
 					lcd.print("Correct!");
@@ -225,67 +225,70 @@ void loop() {
 					
 					nextLocation++;
 					onDestination = !onDestination;
-				} else if(!strcmp(data, passWordReset)) {
-					//Serial.println("New Pass: ");
-					lcd.clear();
-					lcd.home();
-					lcd.print("New Pass: ");
+				} 
+				// else if(!strcmp(data, passWordReset)) {
+				// 	lcd.clear();
+				// 	lcd.home();
+				// 	lcd.print("New Pass: ");
 
-					passwordBeingReset = !passwordBeingReset;
-				} else {
-					//Serial.println("Incorrect!");
-					//Serial.println("Try Again...");
+				// 	passwordBeingReset = !passwordBeingReset;
+				// } 
+				else {
 					lcd.clear();
 					lcd.home();
 					lcd.print("Incorrect!");
-					lcd.setCursor(0, 1);
-					lcd.print("Try again...");
 				}
 				clearData();
-			} else {
-				givePassword();
-			}
-		} else if(nextLocation == 3) {
-			// // Read the accelerometer data
-			// Wire.beginTransmission(MPU);
-			// Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
-			// Wire.endTransmission(false);
-			// Wire.requestFrom(MPU, 6, true); // Read 6 registers total, each axis value is stored in 2 registers
-			
-			// AcX = Wire.read() << 8 | Wire.read(); // X-axis value
-			// AcY = Wire.read() << 8 | Wire.read(); // Y-axis value
-			// AcZ = Wire.read() << 8 | Wire.read(); // Z-axis value
-
-			// // Calculating the pitch (rotation around Y-axis) and roll (rotation around X-axis)
-			// pitch = atan(-1 * AcX / sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180 / PI;
-			// roll = atan(-1 * AcY / sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180 / PI;
-
-			// Serial.print("Pitch: ");
-			// Serial.print(abs(pitch));
-			// Serial.print(" deg");
-			
-			// Serial.print("\t\t");
-
-			// Serial.print("Roll: ");
-			// Serial.print(abs(roll));
-			// Serial.println(" deg");
-
-			// // Print naar LCD
-			// lcd.clear();
-			// lcd.home();
-			// lcd.print("Keep straight");
-			// lcd.setCursor(0, 1);
-			// lcd.print("P: ");
-			// lcd.print(pitch);
-			// lcd.print(" | R: ");
-			// lcd.print(roll);
-
-			// if((pitch < 2 && pitch > -2) && (roll < 2 && roll > -2)) {
-			// 	nextLocation++;
-			// 	onDestination = !onDestination;
+			} 
+			// else {
+			// 	givePassword();
 			// }
+		} else if(nextLocation == 3) {
+			
 		}
 	}
+}
+
+// Functions Gyro
+void setupMPU() {
+	// // Read the accelerometer data
+	// Wire.beginTransmission(MPU);
+	// Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
+	// Wire.endTransmission(false);
+	// Wire.requestFrom(MPU, 6, true); // Read 6 registers total, each axis value is stored in 2 registers
+	
+	// AcX = Wire.read() << 8 | Wire.read(); // X-axis value
+	// AcY = Wire.read() << 8 | Wire.read(); // Y-axis value
+	// AcZ = Wire.read() << 8 | Wire.read(); // Z-axis value
+
+	// // Calculating the pitch (rotation around Y-axis) and roll (rotation around X-axis)
+	// pitch = atan(-1 * AcX / sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180 / PI;
+	// roll = atan(-1 * AcY / sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180 / PI;
+
+	// Serial.print("Pitch: ");
+	// Serial.print(abs(pitch));
+	// Serial.print(" deg");
+	
+	// Serial.print("\t\t");
+
+	// Serial.print("Roll: ");
+	// Serial.print(abs(roll));
+	// Serial.println(" deg");
+
+	// // Print naar LCD
+	// lcd.clear();
+	// lcd.home();
+	// lcd.print("Keep straight");
+	// lcd.setCursor(0, 1);
+	// lcd.print("P: ");
+	// lcd.print(pitch);
+	// lcd.print(" | R: ");
+	// lcd.print(roll);
+
+	// if((pitch < 2 && pitch > -2) && (roll < 2 && roll > -2)) {
+	// 	nextLocation++;
+	// 	onDestination = !onDestination;
+	// }
 }
 
 // Functions Keypad
@@ -302,22 +305,22 @@ char* giveData() {
 	return data;
 }
 
-char givePassword() {
-	for(int i = 0; i < passwordLength - 1; i++) {
-		passWord[nextLocation][i] = data[i];
-	}
-	if(dataCount == passwordLength - 1) {
-		//Serial.print("New Pass: ");
-		//Serial.println(passWord);
-		lcd.home();
-		lcd.print("New Pass: ");
-		lcd.print(passWord[nextLocation]);
-		lcd.print("!");
-		clearData();
-		passwordBeingReset = !passwordBeingReset;
-	}
-	return passWord;
-}
+// char givePassword() {
+// 	for(int i = 0; i < passwordLength - 1; i++) {
+// 		passWord[nextLocation][i] = data[i];
+// 	}
+// 	if(dataCount == passwordLength - 1) {
+// 		//Serial.print("New Pass: ");
+// 		//Serial.println(passWord);
+// 		lcd.home();
+// 		lcd.print("New Pass: ");
+// 		lcd.print(passWord[nextLocation]);
+// 		lcd.print("!");
+// 		clearData();
+// 		passwordBeingReset = !passwordBeingReset;
+// 	}
+// 	return passWord;
+// }
 
 void clearData() {
 	for(byte i = 0; i < passwordLength; i++) {
