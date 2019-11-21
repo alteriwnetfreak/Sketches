@@ -38,32 +38,25 @@ Keypad customKeypad = Keypad(makeKeymap(numPad), rowPins, colPins, ROWS, COLS);
 
 // Global Variables | Keypad
 #define passwordLength 6
-#define latlngAmount 4
+#define latlngAmount 12
 #define latCOsize 10
 #define lngCOsize 9
 byte dataCount = 0;
 
 char data[passwordLength] = "";
 char passWord[passwordLength] = "21199";
-char programmerMode[latlngAmount][2][passwordLength] = { 
-	{ "1#001", "2#001" },
-	{ "1#002", "2#002" },
-	{ "1#003", "2#003" },
-	{ "1#004", "2#004" }
-};
-
-bool pmSwitch = false;
-bool pmMode = false;
+char programmerMode[passwordLength] = "2#111";
+// char pmPositie[latlngAmount][2][passwordLength] = { 
+// 	{ "1#001", "2#001" },
+// 	{ "1#002", "2#002" },
+// 	{ "1#003", "2#003" },
+// 	{ "1#004", "2#004" }
+// };
 
 // Coordinaten Latitude
 char COdata[latCOsize] = "";
-float latlngCO[latlngAmount][2] = {
-	{ 52.123456, 5.098765 },
-	{ 52.234567, 5.987654 },
-	{ 52.345678, 5.876543 },
-	{ 52.456789, 5.765432 },
-};
-float newLAT;
+float latlngCO[latlngAmount][2];
+float newCO;
 
 
 // Include LCD
@@ -76,11 +69,20 @@ const int rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
-// Knop voor ProgrammerMode
+// Variabelen voor ProgrammerMode
+byte pmSwitch = 0;
+bool pmMode = false;
+
+// Knop
 long knopIngedrukt = 0;
 int knopStatus = 0;
 
+// String Split
+char *COposition[6];
+int COpositionConv[2];
+char *ptr = NULL;
 
+byte index = 0;
 
 // SETUP
 void setup() {
@@ -93,6 +95,7 @@ void setup() {
 	lcd.print("Voer wachtwoord in: ");
 
 	Serial.println("Voer wachtwoord in: ");
+
 }
 
 // LOOP
@@ -106,85 +109,155 @@ void loop(){
 				knopIngedrukt = millis();
 			} else {
 				if(millis() - knopIngedrukt >= 10000) {
-					Serial.println("We switchen naar programmerMode");
-					Serial.println("Vul wachtwoord in:");
+					knopIngedrukt = 0;
 
-					lcd.clear();
-					lcd.home();
-					lcd.print("pmMode. geef ww:");
-					pmSwitch = true;
+					if(pmSwitch == 0) {
+						Serial.println("We switchen naar programmerMode");
+						Serial.println("Vul wachtwoord in:");
+
+						lcd.clear();
+						lcd.home();
+						lcd.print("pmMode. geef ww:");
+						pmSwitch = 1;
+					} else if(pmSwitch == 1) {
+						Serial.println("En terug naar het spel!");
+						pmSwitch = 0;
+					}
 				}
 			}
 		}
 
 		giveData();
-		if(!pmSwitch && dataCount == passwordLength - 1) {
-			if(!strcmp(data, passWord)) {
-				lcd.clear();
-				lcd.home();
-				lcd.print("Correct!");
+		if(dataCount == passwordLength - 1) {
+			if(pmSwitch == 0) {
+				if(!strcmp(data, passWord)) {
+					lcd.clear();
+					lcd.home();
+					lcd.print("Correct!");
 
-				Serial.println("Correct!");
+					Serial.println("Correct!");
+				} else {
+					lcd.clear();
+					lcd.home();
+					lcd.print("Incorrect!");
+
+					Serial.println("Incorrect!");
+				}
+				clearData();
+			} else if(pmSwitch == 1) {	
+				if(!strcmp(data, programmerMode)) {
+					Serial.println("Old Coördinates: ");
+					for(byte i = 0; i < latlngAmount; i++) {
+						Serial.print("LAT ");
+						Serial.print(i + 1);
+						Serial.print(":\t");
+						Serial.print(latlngCO[i][0], 6);
+						Serial.print("\tLNG ");
+						Serial.print(i + 1);
+						Serial.print(":\t");
+						Serial.println(latlngCO[i][1], 6);
+					}
+					pmSwitch++;
+				} else {
+					lcd.clear();
+					lcd.home();
+					lcd.print("Onjuist!");
+					
+					Serial.println("Onjuist!!!!!!!!!!!");
+					pmSwitch = 0;
+				}
+				clearData();
 			} else {
-				lcd.clear();
-				lcd.home();
-				lcd.print("Incorrect!");
+				if(COpositionConv[0] > latlngAmount || COpositionConv[1] > 2) {
+				    lcd.clear();
+				    lcd.home();
+				    lcd.print("Niet Geldig!");
 
-				Serial.println("Incorrect!");
-			}
-			clearData();
-		} else {
-			if(dataCount == passwordLength - 1) {
-				Serial.println(strtok(data, "#"));
-				// if(!strcmp(data, programmerMode)) {
-				// 	lcd.clear();
-				// 	lcd.home();
-				// 	lcd.print("Old LAT:");
-				// 	lcd.setCursor(0, 1);
-				// 	lcd.print(latlngCO[1][0], 6);
+				    Serial.println("Niet Geldig!");
 
-				// 	Serial.println("Old Coördinates: ");
-				// 	for(byte i = 0; i < latlngAmount; i++) {
-				// 		Serial.print("LAT: ");
-				// 		Serial.print(latlngCO[i][0], 6);
-				// 		Serial.print("\tLNG: ");
-				// 		Serial.println(latlngCO[i][1], 6);
-				// 	}
-				// 	pmMode = !pmMode;
-				// } else {
-				// 	lcd.clear();
-				// 	lcd.home();
-				// 	lcd.print("Onjuist!");
-				// 	Serial.println("Onjuist!!!!!!!!!!!");
+				    pmSwitch = 0;
+				} else {
+					ptr = strtok(data, "#");
+					while(ptr != NULL)
+				    {
+				        COposition[index] = ptr;
+				        index++;
+				        ptr = strtok(NULL, "#");  // takes a list of delimiters
+				    }
+					for(int n = 0; n < index; n++) {
+				        COpositionConv[n] = atoi(COposition[n]);
+				        Serial.println(COpositionConv[n]);
+				    }
+					index = 0;
 
-				// 	pmSwitch = !pmSwitch;
-				// }
+				    Serial.print("Positie: ");
+				    Serial.print(COpositionConv[0]);
+				    Serial.print("\t");
+				    Serial.print("LAT/LONG: ");
+				    Serial.print(COpositionConv[1]);
+				    Serial.println("");
+					
+					pmMode = !pmMode;
+				}
 				clearData();
 			}
 		}
 	} else {
 		giveCoordinate();
-		if(dataCount == latCOsize - 1) {
-			newLAT = atof(COdata);
+		if(COpositionConv[1] == 1) {
+			if(dataCount == latCOsize - 1) {
+				newCO = atof(COdata);
+				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = newCO;
 
-			lcd.clear();
-			lcd.home();
-			lcd.print("New LAT:");
-			lcd.setCursor(0, 1);
-			lcd.print(newLAT, 6);
+				Serial.print(COpositionConv[0] - 1);
+				Serial.print("\t");
+				Serial.print(COpositionConv[1] - 1);
 
-			Serial.print("New Coördinate: ");
-			// Serial.println(latlngCO[latlngAmount], 6);
-			Serial.println(newLAT, 6);
-			Serial.println("");
-			for(byte i = 0; i < latlngAmount; i++) {
-				Serial.print("LAT: ");
-				Serial.print(latlngCO[i][0], 6);
-				Serial.print("\tLNG: ");
-				Serial.println(latlngCO[i][1], 6);
+				lcd.clear();
+				lcd.home();
+				lcd.print("New LAT:");
+				lcd.setCursor(0, 1);
+				lcd.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+
+				Serial.print("New Coördinate(s): ");
+				Serial.println(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+				Serial.println("");
+				for(byte i = 0; i < latlngAmount; i++) {
+					Serial.print("LAT: ");
+					Serial.print(latlngCO[i][0], 6);
+					Serial.print("\tLNG: ");
+					Serial.println(latlngCO[i][1], 6);
+				}
+				clearData();
+				pmMode = !pmMode;
 			}
-			clearData();
-			pmMode = !pmMode;
+		} else if(COpositionConv[1] == 2) {
+			if(dataCount == lngCOsize - 1) {
+				newCO = atof(COdata);
+				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = newCO;
+
+				Serial.print(COpositionConv[0] - 1);
+				Serial.print("\t");
+				Serial.print(COpositionConv[1] - 1);
+
+				lcd.clear();
+				lcd.home();
+				lcd.print("New LONG:");
+				lcd.setCursor(0, 1);
+				lcd.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+
+				Serial.print("New Coördinate(s): ");
+				Serial.println(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+				Serial.println("");
+				for(byte i = 0; i < latlngAmount; i++) {
+					Serial.print("LAT: ");
+					Serial.print(latlngCO[i][0], 6);
+					Serial.print("\tLNG: ");
+					Serial.println(latlngCO[i][1], 6);
+				}
+				clearData();
+				pmMode = !pmMode;
+			}
 		}
 	}
 }
