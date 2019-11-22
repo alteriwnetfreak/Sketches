@@ -135,10 +135,6 @@ void setup() {
 	// Initialize interface to the MPU6050
 	// Wire.begin();
 	// setupMPU();
-
-	lcd.print("Setting up GPS..");
-	lcd.setCursor(0, 1);
-	lcd.print("Pls go outside");
 }
 
 //*********************************************

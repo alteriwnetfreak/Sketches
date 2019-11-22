@@ -11,33 +11,40 @@ float locatie[][2] = {
 	{ 52.024656, 5.556728 },
 	{ 52.123456, 5.969696 },
 	{ 52.987655, 5.432121 },
+	{ 52.025210, 5.555854 },
+	{ 52.026478, 5.556792 },
+	{ 52.025814, 5.557516 },
+	{ 52.024656, 5.556728 },
+	{ 52.123456, 5.969696 },
+	{ 52.987655, 5.432121 },
 };
 const byte locatieLength = sizeof(locatie) / sizeof(locatie[0]);
 
-int password[locatieLength] = { 1234, 2345, 3456, 4567, 6777, 2121 };
-char passwordChar[5] = "1234";
+char password[locatieLength][6] = { 
+	"21199", "69666", "21420", "11111", "12345", "99887",
+	"21199", "69666", "21420", "11111", "12345", "88776"
+};
+char randomValue[6];
 
 int sizeCO, sizePass;
 
 float valueF;
-int valueI;
-
-bool programmerMode = false;
+char valueC[6];
 
 void setup() {
 	Serial.begin(9600);
 	
-	Serial.println(locatieLength);
-	Serial.println(sizeof(locatie));
-	Serial.println(passwordChar);
-	Serial.println(sizeof(passwordChar));
-	Serial.println(sizeof(char));
-	Serial.println("");
+	// Serial.println(locatieLength);
+	// Serial.println(sizeof(locatie));
+	// Serial.println(passwordChar);
+	// Serial.println(sizeof(password));
+	// Serial.println(sizeof(char));
+	// Serial.println("");
 
-	EEPROM_write();
+	// // EEPROM_write();
 
-	Serial.println("");
-	Serial.println("");
+	// Serial.println("");
+	// Serial.println("");
 
 	EEPROM_read();
 
@@ -61,7 +68,7 @@ void EEPROM_write() {
 	Serial.println("");
 
 	for(byte i = 0; i < locatieLength; i++) {
-		sizePass = i * (sizeof(int)) + sizeof(locatie);
+		sizePass = i * (6*sizeof(char)) + sizeof(locatie);
 		
 		EEPROM.put(sizePass, password[i]);
 		Serial.print(sizePass);
@@ -82,9 +89,11 @@ void EEPROM_read() {
 	Serial.println("");
 
 	for(byte i = 0; i < locatieLength; i++) {
-		sizePass = i * (sizeof(int)) + sizeof(locatie);
+		sizePass = i * (6*sizeof(char)) + sizeof(locatie);
 		
-		Serial.print(EEPROM.get(sizePass, valueI));
+		memcpy(randomValue, EEPROM.get(sizePass, valueC), sizeof(randomValue));
+		Serial.print(randomValue);
+		// Serial.print(EEPROM.get(sizePass, valueC));
 		Serial.print("\t");
 	}
 	Serial.println("");
