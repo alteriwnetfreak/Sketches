@@ -6,23 +6,33 @@
 
 float locatie[][2] = { 
 	{ 52.025210, 5.555854 },
-	{ 52.026478, 5.556792 },
-	{ 52.025814, 5.557516 },
+	{ 51.026478, 5.556792 },
+	{ 52.025814, 4.557516 },
 	{ 52.024656, 5.556728 },
-	{ 52.123456, 5.969696 },
+	{ 44.123456, 3.969696 },
 	{ 52.987655, 5.432121 },
-	{ 52.025210, 5.555854 },
-	{ 52.026478, 5.556792 },
-	{ 52.025814, 5.557516 },
+	{ 52.025210, 6.555854 },
+	{ 12.026478, 5.556792 },
+	{ 52.025814, 7.557516 },
 	{ 52.024656, 5.556728 },
-	{ 52.123456, 5.969696 },
+	{ 52.123456, 5.001696 },
 	{ 52.987655, 5.432121 },
 };
 const byte locatieLength = sizeof(locatie) / sizeof(locatie[0]);
 
 char password[locatieLength][6] = { 
-	"21199", "69666", "21420", "11111", "12345", "99887",
-	"21199", "69666", "21420", "11111", "12345", "88776"
+	"11111",
+	"11112",
+	"11113",
+	"11114",
+	"11115",
+	"11116",
+	"11117",
+	"11118",
+	"11119",
+	"11120",
+	"11121",
+	"11122"
 };
 char randomValue[6];
 
@@ -41,7 +51,7 @@ void setup() {
 	// Serial.println(sizeof(char));
 	// Serial.println("");
 
-	// // EEPROM_write();
+	// EEPROM_write();
 
 	// Serial.println("");
 	// Serial.println("");
@@ -68,7 +78,7 @@ void EEPROM_write() {
 	Serial.println("");
 
 	for(byte i = 0; i < locatieLength; i++) {
-		sizePass = i * (6*sizeof(char)) + sizeof(locatie);
+		sizePass = i * (7*sizeof(char)) + 100;
 		
 		EEPROM.put(sizePass, password[i]);
 		Serial.print(sizePass);
@@ -89,11 +99,10 @@ void EEPROM_read() {
 	Serial.println("");
 
 	for(byte i = 0; i < locatieLength; i++) {
-		sizePass = i * (6*sizeof(char)) + sizeof(locatie);
+		sizePass = i * (7*sizeof(char)) + 100;
 		
 		memcpy(randomValue, EEPROM.get(sizePass, valueC), sizeof(randomValue));
 		Serial.print(randomValue);
-		// Serial.print(EEPROM.get(sizePass, valueC));
 		Serial.print("\t");
 	}
 	Serial.println("");

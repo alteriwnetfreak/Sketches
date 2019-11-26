@@ -5,25 +5,32 @@
 #include <FastLED.h>
 
 //Define
-#define PIN 6
-#define NUM_LEDS 2
+#define PIN A5
+#define NUM_LEDS 6
 
 CRGB leds[NUM_LEDS];
 
 void setup() {
-  //Initialize the 3 leds
-  FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
+	//Initialize the leds
+	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
 
-  //Debug
-  Serial.begin(9600);
-}
+	//Debug
+	Serial.begin(9600);
 
-void loop() {
 	for(int x=0; x<NUM_LEDS; x++){
 		writeLED('R', x);
 	}
 	FastLED.show();
+
+	writeLED('R', 0);
+	writeLED('R', 3);
+	writeLED('B', 1);
+	writeLED('B', 4);
+
+	FastLED.show();
 }
+
+void loop() {}
 
 void writeLED(char color, int led) {
 	if (color == 'R'){ 

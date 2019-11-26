@@ -72,6 +72,15 @@ float valueF;
 char valueC[6];
 
 
+// Include FastLED
+#include <FastLED.h>
+
+#define PIN A5
+#define NUM_LEDS 6
+
+CRGB leds[NUM_LEDS];
+
+
 // Variabelen voor ProgrammerMode
 byte pmSwitch = 0;
 bool pmMode = false;
@@ -93,6 +102,9 @@ void setup() {
 	EEPROM_read();
 	
 	pinMode(6, INPUT);
+
+	//Initialize the leds
+	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
 	
 	lcd.begin(16, 2);
 	lcd.clear();
@@ -124,7 +136,7 @@ void loop(){
 					Serial.println("Vul wachtwoord in:");
 					
 					pmSwitch = 1;
-				} else if(pmSwitch == 1) {
+				} else if(pmSwitch >= 1) {
 					lcd.clear();
 					lcd.home();
 					lcd.print("Terug naar spel!");
@@ -138,6 +150,14 @@ void loop(){
 		}
 	}
 
+	for(byte i = 0; i < NUM_LEDS; i++) {
+		if(3 + pmSwitch == i) {
+			writeLED('G', i);
+		} else {
+			writeLED('B', i);
+		}
+	}
+
 	if(!pmMode) {
 		giveData();
 		if(dataCount == passwordLength - 1) {
@@ -147,16 +167,20 @@ void loop(){
 					lcd.home();
 					lcd.print("Correct!");
 
+					writeLED('G', 0);
+
 					Serial.println("Correct!");
 				} else {
 					lcd.clear();
 					lcd.home();
 					lcd.print("Incorrect!");
 
+					writeLED('B', 0);
+
 					Serial.println("Incorrect!");
 				}
 				clearData();
-			} else if(pmSwitch == 1) {	
+			} else if(pmSwitch == 1) {
 				if(!strcmp(data, programmerMode)) {
 					Serial.println("Old Coördinates: ");
 					for(byte i = 0; i < latlngAmount; i++) {
@@ -190,7 +214,7 @@ void loop(){
 					pmSwitch = 0;
 				}
 				clearData();
-			} else {    
+			} else {
 				ptr = strtok(data, "#");
 				while(ptr != NULL)
 			    {
@@ -220,11 +244,12 @@ void loop(){
 
 				    // pmSwitch = 1;
 				} else {
-					Serial.println("Geef een coördinaat/pass: ");
-
 					lcd.clear();
 					lcd.home();
 					lcd.print("Geef CO/PassW:");
+
+					Serial.println("Geef een coördinaat/pass: ");
+					
 					pmMode = !pmMode;
 				}
 				clearData();
@@ -234,9 +259,18 @@ void loop(){
 		giveCoordinate();
 		if(COpositionConv[1] == 1) {
 			if(dataCount == latCOsize - 1) {
-				sizeCO = COpositionConv[0] * (2*sizeof(float));
+				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float));
 				EEPROM.put(sizeCO, atof(COdata));
 				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = EEPROM.get(sizeCO, valueF);
+
+				Serial.print("sizeCO: ");
+				Serial.print(sizeCO);
+				Serial.print("\tCOdata: ");
+				Serial.print(COdata);
+				Serial.print("\tData: ");
+				Serial.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+				Serial.print("\tEEPROM: ");
+				Serial.println(EEPROM.get(sizeCO, valueF), 6);
 
 				lcd.clear();
 				lcd.home();
@@ -256,13 +290,23 @@ void loop(){
 					Serial.println(passWord[i]);
 				}
 				clearData();
+				pmSwitch = 2;
 				pmMode = !pmMode;
 			}
 		} else if(COpositionConv[1] == 2) {
 			if(dataCount == lngCOsize - 1) {
-				sizeCO = COpositionConv[0] * (2*sizeof(float));
-				EEPROM.put(sizeCO + 4, atof(COdata));
-				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = EEPROM.get(sizeCO + 4, valueF);
+				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float)) + 4;
+				EEPROM.put(sizeCO, atof(COdata));
+				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = EEPROM.get(sizeCO, valueF);
+
+				Serial.print("sizeCO: ");
+				Serial.print(sizeCO);
+				Serial.print("\tCOdata: ");
+				Serial.print(COdata);
+				Serial.print("\tData: ");
+				Serial.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+				Serial.print("\tEEPROM: ");
+				Serial.println(EEPROM.get(sizeCO, valueF), 6);
 
 				lcd.clear();
 				lcd.home();
@@ -282,16 +326,17 @@ void loop(){
 					Serial.println(passWord[i]);
 				}
 				clearData();
+				pmSwitch = 2;
 				pmMode = !pmMode;
 			}
 		} else {
 			if(dataCount == passwordLength - 1) {
-				sizePass = (COpositionConv[0] - 1) * (7*sizeof(char)) + sizeof(latlngCO);
+				sizePass = (COpositionConv[0] - 1) * (7*sizeof(char)) + 100;
 				EEPROM.put(sizePass, COdata);
 				memcpy(
 					passWord[COpositionConv[0] - 1], 
 					EEPROM.get(sizePass, valueC), 
-					sizeof(passWord[COpositionConv[0] - 1])
+					sizeof(passWord[0])
 				);
 				// passWord[COpositionConv[0] - 1] = EEPROM.get(sizePass, valueC);
 
@@ -299,7 +344,7 @@ void loop(){
 				Serial.print(sizeof(passWord[COpositionConv[0] - 1]));
 				Serial.print("\tvalueC: ");
 				Serial.print(valueC);
-				Serial.print("\tsizeCO: ");
+				Serial.print("\tsizePass: ");
 				Serial.print(sizePass);
 				Serial.print("\tCOpositionConv: ");
 				Serial.println(COpositionConv[0] - 1);
@@ -323,6 +368,7 @@ void loop(){
 				}
 				clearData();
 				pmMode = !pmMode;
+				pmSwitch = 2;
 			}
 		}
 	}
@@ -360,14 +406,14 @@ void clearData() {
 	dataCount = 0;
 }
 
-
+// EEPROM Functions
 void EEPROM_read() {
 	for(byte i = 0; i < latlngAmount; i++) {
 		sizeCO = i * (2*sizeof(float));
 
 		latlngCO[i][0] = EEPROM.get(sizeCO, valueF);
 
-		Serial.print(sizeof(latlngCO[i]));
+		Serial.print(sizeof(latlngCO[i]) / 2);
 		Serial.print("\t");
 		Serial.print(sizeCO);
 		Serial.print("\t");
@@ -377,7 +423,7 @@ void EEPROM_read() {
 
 		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);
 
-		Serial.print(sizeof(latlngCO[i]));
+		Serial.print(sizeof(latlngCO[i]) / 2);
 		Serial.print("\t");
 		Serial.print(sizeCO + 4);
 		Serial.print("\t");
@@ -385,15 +431,13 @@ void EEPROM_read() {
 	}
 
 	for(byte o = 0; o < latlngAmount; o++) {
-		sizePass = o * (7*sizeof(char)) + sizeof(latlngCO);
+		sizePass = o * (7*sizeof(char)) + 100;
 		
-		memcpy(passWord[o], EEPROM.get(sizePass, valueC), sizeof(passWord[o]));
+		memcpy(passWord[o], EEPROM.get(sizePass, valueC), sizeof(passWord[0]));
 
 		Serial.print(sizePass);
 		Serial.print("\t");
 		Serial.print(o * (7*sizeof(char)));
-		Serial.print("\t");
-		Serial.print(sizeof(latlngCO));
 		Serial.print("\t");
 		Serial.println(valueC);
 
@@ -401,27 +445,18 @@ void EEPROM_read() {
 	Serial.println("");
 	Serial.println("");
 }
-// void EEPROM_write() {
-// 	for(byte i = 0; i < latlngAmount; i++) {
-// 		sizeCO = i * (2*sizeof(float));
 
-// 		EEPROM.put(sizeCO, latlngCO[i][0]);
-// 		EEPROM.put(sizeCO + 4, latlngCO[i][1]);
-// 		Serial.print(sizeCO);
-// 		Serial.print("\t");
-// 		Serial.println(sizeCO + 4);
-// 	}
+// FastLED Functions
+void writeLED(char color, int led) {
+	if (color == 'R'){ 
+		leds[led] = CRGB::Red; 
+	} else if (color == 'G') { 
+		leds[led] = CRGB::Green; 
+	} else if (color == 'B') { 
+		leds[led] = CRGB::Blue; 
+	} else if (color == ' ') { 
+		leds[led] = CRGB::Black; 
+	}
 
-// 	Serial.println("");
-
-// 	for(byte i = 0; i < latlngAmount; i++) {
-// 		sizePass = i * (6*sizeof(char)) + sizeof(latlngCO);
-		
-// 		EEPROM.put(sizePass, passWord[i]);
-// 		Serial.print(sizePass);
-// 		Serial.print("\t");
-// 	}
-// 	Serial.println("");
-// }
-/*
-*/
+	FastLED.show();
+}
