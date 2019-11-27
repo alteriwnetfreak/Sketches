@@ -350,7 +350,7 @@ void loop() {
 						lcd.clear();
 						lcd.home();
 						lcd.print("Give LAT: ");
-						
+
 						// Serial.println("Geef een coördinaat/pass: ");
 						
 						pmMode = !pmMode;
@@ -375,6 +375,7 @@ void loop() {
 
 				stadium++;
 				clearData();
+				rememberTime();
 			}
 		} else if(stadium == 1) {
 			if(dataCount == lngCOsize - 1) {
@@ -391,6 +392,7 @@ void loop() {
 				stadium++;
 				pmMode = !pmMode;
 				clearData();
+				rememberTime();
 			}
 		} else {
 			if(dataCount == passwordLength - 1) {
@@ -546,13 +548,16 @@ void rememberTime() {
 		if(stadium == 0) 
 		{
 			lcd.home();
+			lcd.print("Give LAT:");
 		} 
 		else if(stadium == 1) 
 		{
+			lcd.home();
 			lcd.print("Give LNG: ");
 		}
 		else
 		{
+			lcd.home();
 			lcd.print("Give PASS: ");
 		}
 	}
