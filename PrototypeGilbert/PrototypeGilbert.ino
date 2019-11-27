@@ -38,13 +38,21 @@ byte rowPins[ROWS] = { A3, A2, A1, A0 };
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
 // Variables | Keypad
-int dataCount = 0;
-#define passwordLength 6
+#define passwordLength 6 // min 1, wegens "closing char": (\n)
+#define latlngAmount 12
+#define latCOsize 10 // min 1, wegens "closing char": (\n)
+#define lngCOsize 9 // min 1, wegens "closing char": (\n)
+byte dataCount = 0;
 
 char data[passwordLength] = "";
-char passWord[][passwordLength] = { "21199", "69666", "21420", "11111" };
-char passWordReset[passwordLength] = "2#111";
-bool passwordBeingReset = false;
+char passWord[latlngAmount][passwordLength];
+char programmerMode[passwordLength] = "2#111";
+
+// Coordinaten en Wachtwoord
+char COdata[latCOsize] = "";
+float latlngCO[latlngAmount][2];
+float newCO;
+
 
 
 //*********************************************
@@ -58,14 +66,6 @@ SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 
 // Variables | GPS
-bool onDestination = false;
-
-float locatie[][2] = { 
-	{ 52.025210, 5.555854 },
-	{ 52.026478, 5.556792 },
-	{ 52.025814, 5.557516 },
-	{ 52.024656, 5.556728 },
-};
 byte nextLocation = 0;
 
 float myLAT, myLNG;
@@ -79,8 +79,6 @@ double multiplier = 1000000;
 //*********************************************
 #include <LiquidCrystal.h>
 
-// initialize the library by associating any needed LCD interface pin
-// with the arduino pin number it is connected to
 const int rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
 //const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0; // Analog pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
@@ -89,12 +87,11 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 //*********************************************
 // Include FastLED
 //*********************************************
-// #include <FastLED.h>
+#include <FastLED.h>
 
-// #define PIN 6
-// #define NUM_LEDS 1
-
-// CRGB leds[NUM_LEDS];
+#define PIN A5
+#define NUM_LEDS 6
+CRGB leds[NUM_LEDS];
 
 
 //*********************************************
@@ -109,6 +106,15 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 // int pitch = 0;
 // int roll = 0;
 
+
+//*********************************************
+// Include EEPROM
+//*********************************************
+#include <EEPROM.h>
+
+int sizeCO, sizePass;
+float valueF;
+char valueC[6];
 
 
 //*********************************************
@@ -151,7 +157,7 @@ void loop() {
 		gps.encode(serial_connection.read());
 	}
 	
-	if(!onDestination) {
+	if(!pmMode) {
 		if(gps.location.isUpdated()) {
 			myLAT = gps.location.lat();
 			myLNG = gps.location.lng();
@@ -178,7 +184,7 @@ void loop() {
 				Serial.println(passWord[nextLocation]);
 				Serial.println(nextLocation);
 
-				onDestination = !onDestination;
+				pmMode = !pmMode;
 			} else {
 				lcd.clear();
 				lcd.home();
@@ -202,7 +208,7 @@ void loop() {
 				// FastLED.show();
 				
 				nextLocation++;
-				onDestination = !onDestination;
+				pmMode = !pmMode;
 			} else {
 				lcd.clear();
 				lcd.home();
@@ -222,7 +228,7 @@ void loop() {
 					// FastLED.show();
 					
 					nextLocation++;
-					onDestination = !onDestination;
+					pmMode = !pmMode;
 				} 
 				// else if(!strcmp(data, passWordReset)) {
 				// 	lcd.clear();
@@ -285,7 +291,7 @@ void setupMPU() {
 
 	// if((pitch < 2 && pitch > -2) && (roll < 2 && roll > -2)) {
 	// 	nextLocation++;
-	// 	onDestination = !onDestination;
+	// 	pmMode = !pmMode;
 	// }
 }
 
@@ -295,47 +301,56 @@ char* giveData() {
 	if(customKey) {
 		data[dataCount] = customKey;
 		dataCount++;
-		Serial.println(data);
-		Serial.println(passWord[nextLocation]);
 		lcd.setCursor(0, 1);
 		lcd.print(data);
+		Serial.println(data);
 	}
 	return data;
 }
-
-// char givePassword() {
-// 	for(int i = 0; i < passwordLength - 1; i++) {
-// 		passWord[nextLocation][i] = data[i];
-// 	}
-// 	if(dataCount == passwordLength - 1) {
-// 		//Serial.print("New Pass: ");
-// 		//Serial.println(passWord);
-// 		lcd.home();
-// 		lcd.print("New Pass: ");
-// 		lcd.print(passWord[nextLocation]);
-// 		lcd.print("!");
-// 		clearData();
-// 		passwordBeingReset = !passwordBeingReset;
-// 	}
-// 	return passWord;
-// }
-
+char* giveCoordinate() {
+	char customKey = customKeypad.getKey();
+	if(customKey) {
+		COdata[dataCount] = customKey;
+		dataCount++;
+		lcd.setCursor(0, 1);
+		lcd.print(COdata);
+		Serial.println(COdata);
+	}
+	return COdata;
+}
 void clearData() {
 	for(byte i = 0; i < passwordLength; i++) {
 		data[i] = 0;
 	}
+	for(byte i = 0; i < latCOsize; i++) {
+		COdata[i] = 0;
+	}
 	dataCount = 0;
 }
 
+// EEPROM Functions
+void EEPROM_read() {
+	for(byte i = 0; i < latlngAmount; i++) {
+		sizeCO = i * (2*sizeof(float));
+		latlngCO[i][0] = EEPROM.get(sizeCO, valueF);
+		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);
+	}
+	for(byte o = 0; o < latlngAmount; o++) {
+		sizePass = o * (12*sizeof(char)) + 100;
+		memcpy(passWord[o], EEPROM.get(sizePass, valueC), sizeof(passWord[0]));
+	}
+}
+
 // functions LEDs
-// void writeLED(char color, int led) {
-// 	if (color == 'R'){ 
-//     	leds[led] = CRGB::Red; 
-// 	} else if (color == 'G') { 
-//     	leds[led] = CRGB::Green; 
-// 	} else if (color == 'B') { 
-//     	leds[led] = CRGB::Blue; 
-// 	} else if (color == ' ') { 
-//     	leds[led] = CRGB::Black; 
-// 	}
-// }
+void writeLED(char color, int led) {
+	if (color == 'R'){ 
+    	leds[led] = CRGB::Red; 
+	} else if (color == 'G') { 
+    	leds[led] = CRGB::Green; 
+	} else if (color == 'B') { 
+    	leds[led] = CRGB::Blue; 
+	} else if (color == ' ') { 
+    	leds[led] = CRGB::Black; 
+	}
+	FastLED.show();
+}

@@ -8,8 +8,8 @@
 
 // int16_t AcX, AcY, AcZ;
 // //int axis = 0;
-// int pitch = 0;
-// int roll = 0;
+int pitch = 0;
+int roll = 0;
 
 
 //*********************************************
@@ -140,9 +140,12 @@ void recordAccelRegisters() {
 }
 
 void processAccelData(){
-  gForceX = accelX / 16384.0;
-  gForceY = accelY / 16384.0; 
-  gForceZ = accelZ / 16384.0;
+	gForceX = accelX / 16384.0;
+	gForceY = accelY / 16384.0; 
+	gForceZ = accelZ / 16384.0;
+
+	 pitch = atan(-1 * accelX / sqrt(pow(accelY, 2) + pow(accelZ, 2))) * 180 / PI;
+	 roll = atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI;
 }
 
 // void recordGyroRegisters() {
@@ -177,5 +180,9 @@ void printData() {
   Serial.print(" Y= \t");
   Serial.print(gForceY);
   Serial.print(" Z= \t");
-  Serial.println(gForceZ);
+  Serial.print(gForceZ);
+  Serial.print(" Pitch= \t");
+  Serial.print(pitch);
+  Serial.print(" Roll= \t");
+  Serial.println(roll);
 }
