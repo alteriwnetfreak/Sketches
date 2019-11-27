@@ -14,7 +14,7 @@ char hexaKeys[ROWS][COLS] = {
 	{ '1', '2', '3' },
 	{ '4', '5', '6' },
 	{ '7', '8', '9' },
-	{ '*', '0', '#' }
+	{ '.', '0', '#' }
 };
 //On keypad-board, from left to right
 //Connect to pins: 7 to 13
@@ -66,6 +66,7 @@ SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 
 // Variables | GPS
+bool onDestination = false;
 byte nextLocation = 0;
 
 float myLAT, myLNG;
@@ -99,12 +100,9 @@ CRGB leds[NUM_LEDS];
 //*********************************************
 // #include <Wire.h>
 
-// const int MPU = 0x68; // I2C address of the MPU6050 accelerometer
-
-// int16_t AcX, AcY, AcZ;
-// int axis = 0;
-// int pitch = 0;
-// int roll = 0;
+// long accelX, accelY, accelZ;
+// float gForceX, gForceY, gForceZ;
+// byte pitch, roll;
 
 
 //*********************************************
@@ -118,35 +116,53 @@ char valueC[6];
 
 
 //*********************************************
+// Include pmMode | knop | strspl | timer
+//*********************************************
+// Variabelen voor ProgrammerMode
+byte stadium = 0;
+byte pmSwitch = 0;
+bool pmMode = false;
+
+// Knop
+long knopIngedrukt = 0;
+int knopStatus = 0;
+
+// String Split
+char *COposition[6];
+int COpositionConv[2];
+char *ptr = NULL;
+byte index = 0;
+
+
+//*********************************************
 // Setup
 //*********************************************
 void setup() {
+	// Read EEPROM for coördinates en passwords
+	EEPROM_read();
+
+	// Button for ProgrammerMode
+	pinMode(6, INPUT);
+
+	// Initialize the leds
+	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
+	// for(int x = 0; x < NUM_LEDS; x++) {
+	// 	writeLED('B', x);
+	// }
+
 	// Initialize LCD | Serial | SS
 	lcd.begin(16, 2);
 	Serial.begin(2400);
 	serial_connection.begin(9600);
-
-	// Initialize FastLED
-	// FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-	// for(int x = 0; x < NUM_LEDS; x++){
-	//     writeLED('R', x);
-	// }
-	// FastLED.show();
 
 	// Print start of the game
 	lcd.print("WELCOME!");
 	lcd.setCursor(0, 1);
 	lcd.print("Pls go outside");
 	
-	// Initialize interface to the MPU6050
+	// // Initialize interface to the MPU6050
 	// Wire.begin();
 	// setupMPU();
-
-	// Wire.begin();
-	// Wire.beginTransmission(MPU);
-	// Wire.write(0x6B);
-	// Wire.write(0);
-	// Wire.endTransmission(true);
 }
 
 //*********************************************
@@ -157,98 +173,243 @@ void loop() {
 		gps.encode(serial_connection.read());
 	}
 	
+	int knop = digitalRead(6);
+
+	// Code for button pressed, checking if button is pressed long enough
+	if(knop != knopStatus) {
+		knopStatus = knop;
+		if(knop == 1) {
+			knopIngedrukt = millis();
+		} else {
+			if(millis() - knopIngedrukt >= 1000) {
+				knopIngedrukt = 0;
+
+				// Go into pmMode
+				if(pmSwitch == 0) {
+					lcd.clear();
+					lcd.home();
+					lcd.print("pmMode. Pass:");
+					
+					// Serial.println("We switchen naar programmerMode");
+					// Serial.println("Vul wachtwoord in:");
+					
+					pmSwitch = 1;
+					onDestination = true;
+				// Get out of pmMode
+				} else if(pmSwitch >= 1) {
+					lcd.clear();
+					lcd.home();
+					lcd.print("Back to Game!");
+
+					// Serial.println("En terug naar het spel!");
+
+					pmSwitch = 0;
+					pmMode = false;
+					onDestination = false;
+					
+					rememberTime();
+				}
+			}
+		}
+	}
+
+	// Code for LED's, checking which has to turn what color
+	for(byte i = 0; i < NUM_LEDS; i++) {
+		if(3 + pmSwitch == i) {
+			writeLED('G', i);
+		} else {
+			writeLED('B', i);
+		}
+	}
+
 	if(!pmMode) {
-		if(gps.location.isUpdated()) {
-			myLAT = gps.location.lat();
-			myLNG = gps.location.lng();
-			distanceLAT = (myLAT / locatie[nextLocation][0] - 1) * multiplier; // multiplier hier(onder)
-			distanceLNG = (myLNG / locatie[nextLocation][1] - 1) * multiplier;
-			disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
+		if(!onDestination) {
+			if(gps.location.isUpdated()) {
+				myLAT = gps.location.lat();
+				myLNG = gps.location.lng();
+				distanceLAT = (myLAT / latlngCO[nextLocation][0] - 1) * multiplier; // multiplier hier(onder)
+				distanceLNG = (myLNG / latlngCO[nextLocation][1] - 1) * multiplier;
+				disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
 
-			// Serial.print(myLAT);
-			// Serial.print("\t");
-			// Serial.print(myLNG);
-			// Serial.print("\t");
-			// Serial.print(distanceLAT);
-			// Serial.print("\t");
-			// Serial.print(distanceLNG);
-			// Serial.print("\t");
-			// Serial.println(disToDes);
+				// Serial.print(myLAT);
+				// Serial.print("\t");
+				// Serial.print(myLNG);
+				// Serial.print("\t");
+				// Serial.print(distanceLAT);
+				// Serial.print("\t");
+				// Serial.print(distanceLNG);
+				// Serial.print("\t");
+				// Serial.println(disToDes);
 
-			// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
-			if(disToDes < 100 && disToDes > -100 && nextLocation != sizeof(locatie) / sizeof(locatie[0])) {
-				lcd.clear();
-				lcd.home();
-				lcd.print("Password: ");
-				lcd.print(passWord[nextLocation]);
-				Serial.println(passWord[nextLocation]);
-				Serial.println(nextLocation);
+				// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
+				if(disToDes < 100 && disToDes > -100 && nextLocation != sizeof(latlngCO) / sizeof(latlngCO[0])) {
+					lcd.clear();
+					lcd.home();
+					lcd.print("Password: ");
+					lcd.print(passWord[nextLocation]);
+					// Serial.println(passWord[nextLocation]);
+					// Serial.println(nextLocation);
 
-				pmMode = !pmMode;
-			} else {
-				lcd.clear();
-				lcd.home();
-				// lcd.print(distanceLAT, 3);
-				// lcd.setCursor(8, 0);
-				// lcd.print(distanceLNG, 3);
-				lcd.print("Proximity:");
-				lcd.setCursor(0, 1);
-				lcd.print(disToDes, 6);
+					onDestination = !onDestination;
+				} else {
+					lcd.clear();
+					lcd.home();
+					// lcd.print(distanceLAT, 3);
+					// lcd.setCursor(8, 0);
+					// lcd.print(distanceLNG, 3);
+					lcd.print("Proximity:");
+					lcd.setCursor(0, 1);
+					lcd.print(disToDes, 6);
+				}
+			}
+		} else {
+			giveData();
+			if(dataCount == passwordLength - 1) {
+				// pmSwitch = 0, Not in ProgrammerMode | Should be the game
+				if(pmSwitch == 0) {
+					if(!strcmp(data, passWord[nextLocation])) {	// Password Correct
+						lcd.clear();
+						lcd.home();
+						lcd.print("Correct!");
+
+						writeLED('G', nextLocation);
+
+						nextLocation++;
+						onDestination = !onDestination;
+					} else {							// Password Incorrect
+						lcd.clear();
+						lcd.home();
+						lcd.print("Incorrect!");
+
+						writeLED('R', nextLocation);
+					}
+					clearData();
+				// pmSwitch = 1, First stage of pmMode | logging in
+				} else if(pmSwitch == 1) {
+					// If pmMode pass is correct | Go on to next phase
+					if(!strcmp(data, programmerMode)) {
+						// Serial.println("Old Coördinates: ");
+						// for(byte i = 0; i < latlngAmount; i++) {
+						// 	Serial.print("LAT ");
+						// 	Serial.print(i + 1);
+						// 	Serial.print(":\t");
+						// 	Serial.print(latlngCO[i][0], 6);
+						// 	Serial.print("\tLNG ");
+						// 	Serial.print(i + 1);
+						// 	Serial.print(":\t");
+						// 	Serial.print(latlngCO[i][1], 6);
+						// 	Serial.print("\tPass ");
+						// 	Serial.print(i + 1);
+						// 	Serial.print(": ");
+						// 	Serial.println(passWord[i]);
+						// }
+						// Serial.println("");
+						// Serial.println("Welk coördinaat wil je veranderen?: ");
+						// Serial.println("*Doe het in het format xx#yy, waar xx het punt is en yy de LAT, LONG of Pass*");
+
+						lcd.clear();
+						lcd.home();
+						lcd.print("Which CO/Pass?");
+
+						pmSwitch++;
+					// If pmMode pass is incorrect | Go back to the game
+					} else {
+						lcd.clear();
+						lcd.home();
+						lcd.print("Incorrect!");
+
+						pmSwitch = 0;
+						rememberTime();
+					}
+					clearData();
+				// pmSwitch = 2, Second stage of pmMode | Changing values
+				} else {
+					// Invullen wat je wil veranderen | in de vorm van xx#yy
+					ptr = strtok(data, "#");
+					while(ptr != NULL)
+				    {
+				        COposition[index] = ptr;
+				        index++;
+				        ptr = strtok(NULL, "#");  // takes a list of delimiters
+				    }
+					for(int n = 0; n < index; n++) {
+				        COpositionConv[n] = atoi(COposition[n]);
+				        Serial.println(COpositionConv[n]);
+				    }
+					index = 0;
+					
+					// If typed is not compatible with the list, try again
+					if(COpositionConv[0] > latlngAmount || COpositionConv[1] > 3) {
+						lcd.clear();
+					    lcd.home();
+					    lcd.print("Not Possible!");
+
+					    // Serial.println("Niet mogelijk!");
+					// Go on to changing the value
+					} else {
+						lcd.clear();
+						lcd.home();
+						lcd.print("Give LAT: ");
+						
+						// Serial.println("Geef een coördinaat/pass: ");
+						
+						pmMode = !pmMode;
+					}
+					clearData();
+				}
 			}
 		}
 	} else {
-		giveData();
-		if(!passwordBeingReset && dataCount == passwordLength - 1) {
-			if(!strcmp(data, passWord[nextLocation])) {
-				lcd.clear();
-				lcd.home();
-				lcd.print("Correct!");
-				
-				// writeLED('B', nextLocation);
-				// FastLED.show();
-				
-				nextLocation++;
-				pmMode = !pmMode;
-			} else {
-				lcd.clear();
-				lcd.home();
-				lcd.print("Incorrect!");
-			}
-			clearData();
-		}
-		if(nextLocation != 3) {
-			giveData();
-			if(!passwordBeingReset && dataCount == passwordLength - 1) {
-				if(!strcmp(data, passWord[nextLocation])) {
-					lcd.clear();
-					lcd.home();
-					lcd.print("Correct!");
-					
-					// writeLED('B', nextLocation);
-					// FastLED.show();
-					
-					nextLocation++;
-					pmMode = !pmMode;
-				} 
-				// else if(!strcmp(data, passWordReset)) {
-				// 	lcd.clear();
-				// 	lcd.home();
-				// 	lcd.print("New Pass: ");
+		giveCoordinate();
+		if(stadium == 0) {
+			if(dataCount == latCOsize - 1) {
+				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float));
+				EEPROM.put(sizeCO, atof(COdata));
+				EEPROM_read();
 
-				// 	passwordBeingReset = !passwordBeingReset;
-				// } 
-				else {
-					lcd.clear();
-					lcd.home();
-					lcd.print("Incorrect!");
-				}
+				lcd.clear();
+				lcd.home();
+				lcd.print("New LAT:");
+				lcd.setCursor(0, 1);
+				lcd.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+
+				stadium++;
 				clearData();
-			} 
-			// else {
-			// 	givePassword();
-			// }
-		} else if(nextLocation == 3) {
-			
+			}
+		} else if(stadium == 1) {
+			if(dataCount == lngCOsize - 1) {
+				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float)) + 4;
+				EEPROM.put(sizeCO, atof(COdata));
+				EEPROM_read();
+
+				lcd.clear();
+				lcd.home();
+				lcd.print("New LONG:");
+				lcd.setCursor(0, 1);
+				lcd.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+
+				stadium++;
+				pmMode = !pmMode;
+				clearData();
+			}
+		} else {
+			if(dataCount == passwordLength - 1) {
+				sizePass = (COpositionConv[0] - 1) * (12*sizeof(char)) + 100;
+				EEPROM.put(sizePass, COdata);
+				EEPROM_read();
+
+				lcd.clear();
+				lcd.home();
+				lcd.print("New Pass:");
+				lcd.setCursor(0, 1);
+				lcd.print(passWord[COpositionConv[0] - 1]);
+
+				stadium = 0;
+				pmSwitch = 2;
+				pmMode = !pmMode;
+				clearData();
+				rememberTime();
+			}
 		}
 	}
 }
@@ -291,7 +452,7 @@ void setupMPU() {
 
 	// if((pitch < 2 && pitch > -2) && (roll < 2 && roll > -2)) {
 	// 	nextLocation++;
-	// 	pmMode = !pmMode;
+	// 	onDestination = !onDestination;
 	// }
 }
 
@@ -353,4 +514,46 @@ void writeLED(char color, int led) {
     	leds[led] = CRGB::Black; 
 	}
 	FastLED.show();
+}
+
+// Function Timer
+void rememberTime() {
+	delay(2000);
+	lcd.clear();
+
+	if(!pmMode)
+	{
+		if(!onDestination) 
+		{
+		} 
+		else 
+		{
+			if(pmSwitch == 0)
+			{
+			} 
+			else if(pmSwitch == 1) 
+			{
+			} 
+			else  
+			{
+				lcd.home();
+				lcd.print("Choose another:");
+			}
+		}
+	} 
+	else 
+	{
+		if(stadium == 0) 
+		{
+			lcd.home();
+		} 
+		else if(stadium == 1) 
+		{
+			lcd.print("Give LNG: ");
+		}
+		else
+		{
+			lcd.print("Give PASS: ");
+		}
+	}
 }

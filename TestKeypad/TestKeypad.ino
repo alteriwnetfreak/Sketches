@@ -171,12 +171,14 @@ void loop(){
 		if(dataCount == passwordLength - 1) {
 			// pmSwitch = 0, Not in ProgrammerMode | Should be the game
 			if(pmSwitch == 0) {
-				if(!strcmp(data, passWord[1])) {	// Password Correct
+				if(!strcmp(data, passWord[nextLocation])) {	// Password Correct
 					lcd.clear();
 					lcd.home();
 					lcd.print("Correct!");
 
 					writeLED('G', 0);
+					nextLocation++;
+					onDestination = !onDestination;
 
 					Serial.println("Correct!");
 				} else {							// Password Incorrect
