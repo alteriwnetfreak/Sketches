@@ -118,6 +118,7 @@ void setup() {
 // LOOP
 void loop(){
 	int knop = digitalRead(6);
+	// Serial.println(knop);
 
 	if(knop != knopStatus) {
 		knopStatus = knop;
@@ -261,7 +262,7 @@ void loop(){
 			if(dataCount == latCOsize - 1) {
 				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float));
 				EEPROM.put(sizeCO, atof(COdata));
-				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = EEPROM.get(sizeCO, valueF);
+				EEPROM_read();
 
 				Serial.print("sizeCO: ");
 				Serial.print(sizeCO);
@@ -278,17 +279,17 @@ void loop(){
 				lcd.setCursor(0, 1);
 				lcd.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
 
-				Serial.print("New Coördinate(s) and Pass: ");
-				Serial.println(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
-				Serial.println("");
-				for(byte i = 0; i < latlngAmount; i++) {
-					Serial.print("LAT: ");
-					Serial.print(latlngCO[i][0], 6);
-					Serial.print("\tLNG: ");
-					Serial.print(latlngCO[i][1], 6);
-					Serial.print("\tPass: ");
-					Serial.println(passWord[i]);
-				}
+				// Serial.print("New Coördinate(s) and Pass: ");
+				// Serial.println(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+				// Serial.println("");
+				// for(byte i = 0; i < latlngAmount; i++) {
+				// 	Serial.print("LAT: ");
+				// 	Serial.print(latlngCO[i][0], 6);
+				// 	Serial.print("\tLNG: ");
+				// 	Serial.print(latlngCO[i][1], 6);
+				// 	Serial.print("\tPass: ");
+				// 	Serial.println(passWord[i]);
+				// }
 				clearData();
 				pmSwitch = 2;
 				pmMode = !pmMode;
@@ -297,7 +298,7 @@ void loop(){
 			if(dataCount == lngCOsize - 1) {
 				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float)) + 4;
 				EEPROM.put(sizeCO, atof(COdata));
-				latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1] = EEPROM.get(sizeCO, valueF);
+				EEPROM_read();
 
 				Serial.print("sizeCO: ");
 				Serial.print(sizeCO);
@@ -314,30 +315,26 @@ void loop(){
 				lcd.setCursor(0, 1);
 				lcd.print(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
 
-				Serial.print("New Coördinate(s) and Pass: ");
-				Serial.println(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
-				Serial.println("");
-				for(byte i = 0; i < latlngAmount; i++) {
-					Serial.print("LAT: ");
-					Serial.print(latlngCO[i][0], 6);
-					Serial.print("\tLNG: ");
-					Serial.print(latlngCO[i][1], 6);
-					Serial.print("\tPass: ");
-					Serial.println(passWord[i]);
-				}
+				// Serial.print("New Coördinate(s) and Pass: ");
+				// Serial.println(latlngCO[COpositionConv[0] - 1][COpositionConv[1] - 1], 6);
+				// Serial.println("");
+				// for(byte i = 0; i < latlngAmount; i++) {
+				// 	Serial.print("LAT: ");
+				// 	Serial.print(latlngCO[i][0], 6);
+				// 	Serial.print("\tLNG: ");
+				// 	Serial.print(latlngCO[i][1], 6);
+				// 	Serial.print("\tPass: ");
+				// 	Serial.println(passWord[i]);
+				// }
 				clearData();
 				pmSwitch = 2;
 				pmMode = !pmMode;
 			}
 		} else {
 			if(dataCount == passwordLength - 1) {
-				sizePass = (COpositionConv[0] - 1) * (7*sizeof(char)) + 100;
+				sizePass = (COpositionConv[0] - 1) * (12*sizeof(char)) + 100;
 				EEPROM.put(sizePass, COdata);
-				memcpy(
-					passWord[COpositionConv[0] - 1], 
-					EEPROM.get(sizePass, valueC), 
-					sizeof(passWord[0])
-				);
+				EEPROM_read();
 				// passWord[COpositionConv[0] - 1] = EEPROM.get(sizePass, valueC);
 
 				Serial.print("size of passWord: ");
@@ -355,17 +352,17 @@ void loop(){
 				lcd.setCursor(0, 1);
 				lcd.print(passWord[COpositionConv[0] - 1]);
 
-				Serial.print("New Coördinate(s) and Pass: ");
-				Serial.println(passWord[COpositionConv[0] - 1]);
-				Serial.println("");
-				for(byte i = 0; i < latlngAmount; i++) {
-					Serial.print("LAT: ");
-					Serial.print(latlngCO[i][0], 6);
-					Serial.print("\tLNG: ");
-					Serial.print(latlngCO[i][1], 6);
-					Serial.print("\tPass: ");
-					Serial.println(passWord[i]);
-				}
+				// Serial.print("New Coördinate(s) and Pass: ");
+				// Serial.println(passWord[COpositionConv[0] - 1]);
+				// Serial.println("");
+				// for(byte i = 0; i < latlngAmount; i++) {
+				// 	Serial.print("LAT: ");
+				// 	Serial.print(latlngCO[i][0], 6);
+				// 	Serial.print("\tLNG: ");
+				// 	Serial.print(latlngCO[i][1], 6);
+				// 	Serial.print("\tPass: ");
+				// 	Serial.println(passWord[i]);
+				// }
 				clearData();
 				pmMode = !pmMode;
 				pmSwitch = 2;
@@ -418,7 +415,7 @@ void EEPROM_read() {
 		Serial.print(sizeCO);
 		Serial.print("\t");
 		Serial.print(valueF);
-		Serial.print("\t\t");
+		Serial.print("\t\t\t");
 
 
 		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);
@@ -429,15 +426,16 @@ void EEPROM_read() {
 		Serial.print("\t");
 		Serial.println(valueF);
 	}
+	Serial.println("");
 
 	for(byte o = 0; o < latlngAmount; o++) {
-		sizePass = o * (7*sizeof(char)) + 100;
+		sizePass = o * (12*sizeof(char)) + 100;
 		
 		memcpy(passWord[o], EEPROM.get(sizePass, valueC), sizeof(passWord[0]));
 
 		Serial.print(sizePass);
 		Serial.print("\t");
-		Serial.print(o * (7*sizeof(char)));
+		Serial.print(o * (12*sizeof(char)));
 		Serial.print("\t");
 		Serial.println(valueC);
 
