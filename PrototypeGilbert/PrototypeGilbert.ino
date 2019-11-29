@@ -68,7 +68,7 @@ TinyGPSPlus gps;
 
 // Variables | GPS
 bool onDestination = false;
-byte nextLocation = 0;
+int nextLocation = 0;
 
 float myLAT, myLNG;
 float distanceLAT, distanceLNG;
@@ -129,15 +129,18 @@ long knopIngedrukt = 0;
 int knopStatus = 0;
 
 // String Split
-char *COposition[6];
-int COpositionConv[2];
-char *ptr = NULL;
-byte index = 0;
+char COposition[3];
+int COpositionConv;
 
 // Timers
 float timerTillPause = 2700000;
 float timerAfterPause = 3600000;
 float timerTillEnd = 6300000;
+
+// Macros
+#define PRINT(var) Serial.print(#var ": "); Serial.print(var); Serial.print("\t")
+#define PRINTLN(var) Serial.print(#var ": "); Serial.println(var)
+
 
 
 //*********************************************
@@ -146,7 +149,7 @@ float timerTillEnd = 6300000;
 void setup() {
 	// Initialize LCD | Serial | SS
 	lcd.begin(16, 2);
-	Serial.begin(2400);
+	Serial.begin(9600);
 	serial_connection.begin(9600);
 
 	// Read EEPROM for coördinates en passwords
@@ -157,9 +160,6 @@ void setup() {
 
 	// Initialize the leds
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-	// for(int x = 0; x < NUM_LEDS; x++) {
-	// 	writeLED('B', x);
-	// }
 
 	// Print start of the game
 	lcd.print("WELCOME!");
@@ -175,9 +175,10 @@ void setup() {
 // Loop
 //*********************************************
 void loop() {
-	while(serial_connection.available()) {
-		gps.encode(serial_connection.read());
-	}
+	// // This code runs every time the GPS gets a new locations
+	// while(serial_connection.available()) {
+	// 	gps.encode(serial_connection.read());
+	// }
 
 	// Code for LED's, checking which has to turn what color
 	for(byte i = 0; i < sizeof(passwordCorrect); i++) {
@@ -190,8 +191,9 @@ void loop() {
 		}
 	}
 
-	int knop = digitalRead(6);
+	byte knop = digitalRead(6);
 	if(!pmMode) {
+		Serial.println(knop);
 		if(knop != knopStatus) {// Code for button pressed, checking if button is pressed long enough
 			knopStatus = knop;
 			if(knop == 1) {
@@ -199,6 +201,7 @@ void loop() {
 			} else {
 				if(millis() - knopIngedrukt >= 1000) {
 					knopIngedrukt = 0;
+					Serial.println(knopIngedrukt);
 
 					if(pmSwitch == 0) {// Go into pmMode
 						lcd.clear();
@@ -210,7 +213,7 @@ void loop() {
 						
 						pmSwitch = 1;
 						onDestination = true;
-					} else if(pmSwitch >= 1) {// Get out of pmMode
+					} else if(pmSwitch >= 1) {// Get out of pmMode && pmSwitch
 						lcd.clear();
 						lcd.home();
 						lcd.print("Back to Game!");
@@ -252,6 +255,10 @@ void loop() {
 					lcd.print("Password: ");
 					lcd.print(passWord[nextLocation]);
 
+					Serial.print("Je moeder: ");
+					Serial.println(sizeof(latlngCO) / sizeof(latlngCO[0]));
+					PRINTLN(nextLocation);
+
 					onDestination = !onDestination;
 				} else {
 					lcd.clear();
@@ -262,6 +269,10 @@ void loop() {
 					lcd.print("Proximity:");
 					lcd.setCursor(0, 1);
 					lcd.print(disToDes, 6);
+
+					Serial.print("Je vader: ");
+					Serial.println(sizeof(latlngCO) / sizeof(latlngCO[0]));
+					Serial.println("Proximity");
 				}
 			// }
 		} else {
@@ -311,26 +322,15 @@ void loop() {
 			} else {//********** pmSwitch = 2, Second stage of pmMode | Changing values
 				if(dataCount == 2) {
 					// Invullen wat je wil veranderen | in de vorm van xx#yy
-					ptr = strtok(data, "#");
-					while(ptr != NULL)
-				    {
-				        COposition[index] = ptr;
-				        index++;
-				        ptr = strtok(NULL, "#");  // takes a list of delimiters
-				    }
-					for(int n = 0; n < index; n++) {
-				        COpositionConv[n] = atoi(COposition[n]);
-				        Serial.println(COpositionConv[n]);
-				    }
-					index = 0;
-					
-					// If typed is not compatible with the list, try again
-					if(COpositionConv[0] > latlngAmount || COpositionConv[1] > 3) {
-						lcd.clear();
-					    lcd.home();
-					    lcd.print("Not Possible!");
+					COpositionConv = atoi(COposition);
 
-					    // Serial.println("Niet mogelijk!");
+					// If typed is not compatible with the list, try again
+					if(COpositionConv > latlngAmount) {
+						lcd.clear();
+						lcd.home();
+						lcd.print("Not Possible!");
+
+						// Serial.println("Niet mogelijk!");
 					} else {// Go on to changing the value
 						lcd.clear();
 						lcd.home();
@@ -348,15 +348,16 @@ void loop() {
 		giveCoordinate();
 		if(stadium == 0) {
 			if(dataCount == latCOsize - 1) {
-				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float));
+				sizeCO = (COpositionConv - 1) * (2*sizeof(float));
 				EEPROM.put(sizeCO, atof(COdata));
+				PRINTLN(sizeCO);
 				EEPROM_read();
 
 				lcd.clear();
 				lcd.home();
 				lcd.print("New LAT:");
 				lcd.setCursor(0, 1);
-				lcd.print(latlngCO[COpositionConv[0] - 1][0], 6);
+				lcd.print(latlngCO[COpositionConv - 1][0], 6);
 
 				stadium = 1;
 				clearData();
@@ -364,15 +365,16 @@ void loop() {
 			}
 		} else if(stadium == 1) {
 			if(dataCount == lngCOsize - 1) {
-				sizeCO = (COpositionConv[0] - 1) * (2*sizeof(float)) + 4;
+				sizeCO = (COpositionConv - 1) * (2*sizeof(float)) + 4;
 				EEPROM.put(sizeCO, atof(COdata));
+				PRINTLN(sizeCO);
 				EEPROM_read();
 
 				lcd.clear();
 				lcd.home();
 				lcd.print("New LONG:");
 				lcd.setCursor(0, 1);
-				lcd.print(latlngCO[COpositionConv[0] - 1][1], 6);
+				lcd.print(latlngCO[COpositionConv - 1][1], 6);
 
 				stadium = 2;
 				clearData();
@@ -380,15 +382,17 @@ void loop() {
 			}
 		} else {
 			if(dataCount == passwordLength - 1) {
-				sizePass = (COpositionConv[0] - 1) * (12*sizeof(char)) + 100;
+				sizePass = (COpositionConv - 1) * (12*sizeof(char)) + 100;
 				EEPROM.put(sizePass, COdata);
+				PRINTLN(sizePass);
+				PRINTLN(COpositionConv);
 				EEPROM_read();
 
 				lcd.clear();
 				lcd.home();
 				lcd.print("New Pass:");
 				lcd.setCursor(0, 1);
-				lcd.print(passWord[COpositionConv[0] - 1]);
+				lcd.print(passWord[COpositionConv - 1]);
 
 				stadium = 0;
 				pmSwitch = 2;
@@ -400,8 +404,8 @@ void loop() {
 	}
 }
 
-// Functions Gyro
-void setupMPU() {
+// // Functions Gyro
+// void setupMPU() {
 	// // Read the accelerometer data
 	// Wire.beginTransmission(MPU);
 	// Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
@@ -440,7 +444,7 @@ void setupMPU() {
 	// 	nextLocation++;
 	// 	onDestination = !onDestination;
 	// }
-}
+// }
 
 // Functions Keypad
 char* giveData() {
@@ -450,7 +454,8 @@ char* giveData() {
 		dataCount++;
 		lcd.setCursor(0, 1);
 		lcd.print(data);
-		Serial.println(data);
+		
+		PRINT(data);
 	}
 	return data;
 }
@@ -461,7 +466,8 @@ char* giveCoordinate() {
 		dataCount++;
 		lcd.setCursor(0, 1);
 		lcd.print(COdata);
-		Serial.println(COdata);
+
+		PRINT(COdata);
 	}
 	return COdata;
 }
@@ -480,30 +486,32 @@ void EEPROM_read() {
 	for(byte i = 0; i < latlngAmount; i++) {
 		sizeCO = i * (2*sizeof(float));
 		latlngCO[i][0] = EEPROM.get(sizeCO, valueF);
-		Serial.print(latlngCO[i][0], 6);
-		Serial.print("\t");
+		PRINT(latlngCO[i][0]);
+		PRINT(sizeCO);
 
 		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);
-		Serial.println(latlngCO[i][1], 6);
+		PRINT(latlngCO[i][1]);
+		PRINTLN(sizeCO + 4);
 	}
 	Serial.println("");
 	for(byte o = 0; o < latlngAmount; o++) {
 		sizePass = o * (12*sizeof(char)) + 100;
 		memcpy(passWord[o], EEPROM.get(sizePass, valueC), sizeof(passWord[0]));
-		Serial.println(passWord[o]);
+		PRINT(passWord[o]);
+		PRINTLN(sizePass);
 	}
 }
 
 // functions LEDs
 void writeLED(char color, int led) {
 	if (color == '0'){ 					// Red
-    	leds[led].setRGB(0, 100, 255);
+		leds[led].setRGB(0, 100, 255);
 	} else if (color == '1') { 			// Green
-    	leds[led].setRGB(0, 255, 0);
+		leds[led].setRGB(0, 255, 0);
 	} else if (color == '2') { 			// Blue
-    	leds[led].setRGB(0, 0, 255);
+		leds[led].setRGB(0, 0, 255);
 	} else if (color == ' ') {			// Black | off
-    	leds[led].setRGB(0, 0, 0);  
+		leds[led].setRGB(0, 0, 0);  
 	}
 	FastLED.show();
 }
