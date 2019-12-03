@@ -125,19 +125,21 @@ byte pmSwitch = 0;
 bool pmMode = false;
 
 // Knop
+byte knop = 0;
 long knopIngedrukt = 0;
 int knopStatus = 0;
 
 int COposition;
 
 // Timers
+unsigned long rememberTime = 0;
 float timerTillPause = 2700000;
 float timerAfterPause = 3600000;
 float timerTillEnd = 6300000;
 
 // Macros
-#define PRINT(var) Serial.print(#var ": "); Serial.print(var); Serial.print("\t")
-#define PRINTLN(var) Serial.print(#var ": "); Serial.println(var)
+#define PRINT(var) Serial.print(#var ": "); Serial.print(var); Serial.print("\t");
+#define PRINTLN(var) Serial.print(#var ": "); Serial.println(var);
 
 
 
@@ -178,8 +180,25 @@ void loop() {
 		gps.encode(serial_connection.read());
 	}
 	
+	// Code for LED's, checking which has to turn what color
+	for(byte i = 0; i < sizeof(passwordCorrect); i++) 
+	{
+		if(passwordCorrect[i] == 1) 
+		{
+			writeLED(2, i);
+		} 
+		else if(passwordCorrect[i] == 2) 
+		{
+			writeLED(3, i);
+		} 
+		else 
+		{
+			writeLED(1, i);
+		}
+	}
+
 	// Code for button pressed, checking if button is pressed long enough
-	int knop = digitalRead(6);
+	knop = digitalRead(6);
 	if(knop != knopStatus) 
 	{
 		knopStatus = knop;
@@ -189,20 +208,18 @@ void loop() {
 		} 
 		else 
 		{
-			if(millis() - knopIngedrukt >= 1000) 
+			if(millis() - knopIngedrukt >= 3000) 
 			{
 				knopIngedrukt = 0;
-				// Go into pmMode
-				if(pmSwitch == 0) 
+				if(pmSwitch == 0) // Go into pmMode
 				{
 					lcd.clear();
 					lcd.home();
 					lcd.print("pmMode. Pass:");
 					pmSwitch = 1;
 					onDestination = true;
-				// Get out of pmMode
 				} 
-				else if(pmSwitch >= 1) 
+				else if(pmSwitch >= 1) // Get out of pmMode
 				{
 					lcd.clear();
 					lcd.home();
@@ -213,23 +230,10 @@ void loop() {
 					showOnLCD();
 				}
 			}
-		}
-	}
-
-	// Code for LED's, checking which has to turn what color
-	for(byte i = 0; i < sizeof(passwordCorrect); i++) 
-	{
-		if(passwordCorrect[i] == 1) 
-		{
-			writeLED('1', i);
-		} 
-		else if(passwordCorrect[i] == 2) 
-		{
-			writeLED('2', i);
-		} 
-		else 
-		{
-			writeLED('0', i);
+			else
+			{
+				PRINTLN(millis() - knopIngedrukt);
+			}
 		}
 	}
 
@@ -237,23 +241,23 @@ void loop() {
 	{
 		if(!onDestination) 
 		{
-			// if(gps.location.isUpdated()) 
-			// {
-			// 	myLAT = gps.location.lat();
-			// 	myLNG = gps.location.lng();
-			// 	distanceLAT = (myLAT / latlngCO[nextLocation][0] - 1) * multiplier; // multiplier hier(onder)
-			// 	distanceLNG = (myLNG / latlngCO[nextLocation][1] - 1) * multiplier;
-			// 	disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
+			if(gps.location.isUpdated()) 
+			{
+				myLAT = gps.location.lat();
+				myLNG = gps.location.lng();
+				distanceLAT = (myLAT / latlngCO[nextLocation][0] - 1) * multiplier; // multiplier hier(onder)
+				distanceLNG = (myLNG / latlngCO[nextLocation][1] - 1) * multiplier;
+				disToDes = sqrt(sq(distanceLAT) + sq(distanceLNG));
 
-			// 	Serial.print(myLAT);
-			// 	Serial.print("\t");
-			// 	Serial.print(myLNG);
-			// 	Serial.print("\t");
-			// 	Serial.print(distanceLAT);
-			// 	Serial.print("\t");
-			// 	Serial.print(distanceLNG);
-			// 	Serial.print("\t");
-			// 	Serial.println(disToDes);
+				Serial.print(myLAT);
+				Serial.print("\t");
+				Serial.print(myLNG);
+				Serial.print("\t");
+				Serial.print(distanceLAT);
+				Serial.print("\t");
+				Serial.print(distanceLNG);
+				Serial.print("\t");
+				Serial.println(disToDes);
 
 				// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
 				if(disToDes < 100 && disToDes > -100 && nextLocation != sizeof(latlngCO) / sizeof(latlngCO[0])) 
@@ -262,8 +266,6 @@ void loop() {
 					lcd.home();
 					lcd.print("Password: ");
 					lcd.print(passWord[nextLocation]);
-					Serial.println(nextLocation);
-					Serial.println("\t");
 					PRINTLN(nextLocation);
 					onDestination = !onDestination;
 				} 
@@ -278,43 +280,43 @@ void loop() {
 					lcd.setCursor(0, 1);
 					lcd.print(disToDes, 6);
 				}
-			// }
+			}
 		} 
 		else 
 		{
 			giveData();
-			if(pmSwitch == 0) 
-			{//********** pmSwitch = 0, Not in ProgrammerMode | Should be the game
+			if(pmSwitch == 0) // pmSwitch = 0, Not in ProgrammerMode | Should be the game
+			{
 				if(dataCount == passwordLength - 1) 
 				{
 					lcd.clear();
 					lcd.home();
-					if(!strcmp(data, passWord[nextLocation])) 
-					{// Password Correct
+					if(!strcmp(data, passWord[nextLocation])) // Password Correct
+					{
 						lcd.print("Correct!");
 						nextLocation++;
 						onDestination = !onDestination;
 					} 
-					else 
-					{// Password Incorrect
+					else // Password Incorrect
+					{
 						lcd.print("Incorrect!");
 					}
 					clearData();
 				}
 			} 
-			else if(pmSwitch == 1) 
-			{//********** pmSwitch = 1, First stage of pmMode | logging in
+			else if(pmSwitch == 1) //********** pmSwitch = 1, First stage of pmMode | logging in
+			{
 				if(dataCount == passwordLength - 1) 
 				{
 					lcd.clear();
 					lcd.home();
-					if(!strcmp(data, programmerMode)) 
-					{// If pmMode pass is correct | Go on to next phase
+					if(!strcmp(data, programmerMode)) // If pmMode pass is correct | Go on to next phase
+					{
 						lcd.print("Which CO/Pass?");
 						pmSwitch = 2;
 					} 
-					else 
-					{// If pmMode pass is incorrect | Go back to the game
+					else // If pmMode pass is incorrect | Go back to the game
+					{
 						lcd.print("Incorrect!");
 						pmSwitch = 0;
 						showOnLCD();
@@ -322,8 +324,8 @@ void loop() {
 					clearData();
 				}
 			} 
-			else 
-			{//********** pmSwitch = 2, Second stage of pmMode | Changing values
+			else // pmSwitch = 2, Second stage of pmMode | Changing values
+			{
 				if(dataCount == 2) 
 				{
 					PRINTLN(data);
@@ -333,12 +335,12 @@ void loop() {
 
 					lcd.clear();
 					lcd.home();
-					if(COposition > latlngAmount) 
-					{// If typed is not compatible with the list, try again
+					if(COposition > latlngAmount) // If typed is not compatible with the list, try again
+					{
 						lcd.print("Not Possible!");
 					} 
-					else 
-					{// Go on to changing the value
+					else // Go on to changing the value
+					{
 						lcd.print("Give LAT: ");
 						pmMode = !pmMode;
 					}
@@ -458,6 +460,7 @@ void clearData() {
 		COdata[i] = 0;
 	}
 	dataCount = 0;
+	return;
 }
 
 // EEPROM Functions
@@ -487,58 +490,72 @@ void EEPROM_read() {
 }
 
 // functions LEDs
-void writeLED(char color, int led) {
-	if (color == '0'){
+void writeLED(byte color, int led) {
+	if(color == 1) 
+	{
 		leds[led].setRGB(0, 100, 255);
-	} else if (color == '1') {
+	} 
+	else if(color == 2) 
+	{
 		leds[led].setRGB(0, 255, 0);
-	} else if (color == '2') {
+	} 
+	else if(color == 3) 
+	{
 		leds[led].setRGB(0, 0, 255);
-	} else if (color == ' ') {
+	} 
+	else if(color == 0) 
+	{
 		leds[led].setRGB(0, 0, 0);
 	}
 	FastLED.show();
+	return;
 }
 
 // Function Timer
 void showOnLCD() {
-	delay(2000);
-	lcd.clear();
-	lcd.home();
+	rememberTime = millis();
+	PRINT(rememberTime);
 
-	if(!pmMode) {
-		if(!onDestination) {
-			//
-		} else {
-			if(pmSwitch == 0) {
-				lcd.print("Incorrect!");
-				lcd.setCursor(0, 1);
-				lcd.print("Try again");
-
-				delay(1500);
-
-				lcd.clear();
-			} else if(pmSwitch == 1) {
-				lcd.print("Incorrect!");
-				
-				delay(2000);
-
-				lcd.clear();
-				lcd.home();
-				lcd.print("Back to game!");
+	while(millis() - rememberTime < 2000)
+	{
+		lcd.clear();
+		lcd.home();
+		if(!pmMode) {
+			if(!onDestination) {
+				//
 			} else {
-				lcd.print("Choose another:");
+				if(pmSwitch == 0) {
+					lcd.print("Incorrect!");
+					lcd.setCursor(0, 1);
+					lcd.print("Try again");
+
+					delay(1500);
+
+					lcd.clear();
+				} else if(pmSwitch == 1) {
+					lcd.print("Incorrect!");
+					
+					delay(2000);
+
+					lcd.clear();
+					lcd.home();
+					lcd.print("Back to game!");
+				} else {
+					lcd.print("Choose another:");
+				}
+			}
+		} else {
+			if(stadium == 0) {
+				lcd.print("Give LAT:");
+			} else if(stadium == 1) {
+				lcd.print("Give LNG: ");
+			} else {
+				lcd.print("Give PASS: ");
 			}
 		}
-	} else {
-		if(stadium == 0) {
-			lcd.print("Give LAT:");
-		} else if(stadium == 1) {
-			lcd.print("Give LNG: ");
-		} else {
-			lcd.print("Give PASS: ");
-		}
 	}
+	PRINTLN(rememberTime);
+	return;
 }
 
 // // Functions Gyro
