@@ -165,81 +165,60 @@ void loop()
 		} 
 		else 
 		{
-			if(millis() - knopIngedrukt >= 3000) 
+			if(millis() - knopIngedrukt > 1000) 
 			{
-				// PRINTLN(millis() - knopIngedrukt);
+				PRINT(millis() - knopIngedrukt);
 				knopIngedrukt = 0;
-				if(pmSwitch == 0) // Go into pmMode
-				{
-					pmSwitch = 1;
-					onDestination = true;
-				} 
-				else if(pmSwitch >= 1) // Get out of pmMode
-				{
-					pmSwitch = 0;
-					onDestination = false;
-				}
+				
+				onDestination = !onDestination;
 			}
 		}
 	}
 
-
 	// Navigation through the whole program
 	if(!pmMode) // In the game itself, playing it, or trying to get in pmMode
 	{
-		PRINTLN(pmMode);
+		PRINT(pmMode);
 
 		if(!onDestination) // In the game itself, still needing to go to the designated location
 		{
-			PRINTLN(onDestination);
-
-			// if-statement | andere optie: (distanceLAT < 0.15 && distanceLAT > -0.15) && (distanceLNG < 0.10 && distanceLNG > -0.10)
-			if(disToDes < 100 && disToDes > -100 && nextLocation != sizeof(latlngCO) / sizeof(latlngCO[0])) 
-			{
-				PRINT(onDestination);
-				PRINTLN(nextLocation);
-				onDestination = !onDestination;
-			} 
-			else 
-			{
-				PRINTLN(onDestination);
-			}
+			PRINT(onDestination);
 		}
 		else // In the game itself, you are at the designated location. You need a password to go on
 		{
-			PRINTLN(onDestination);
+			PRINT(onDestination);
 
 			if(pmSwitch == 0) // In the game itself, you're expected to give a password to go on
 			{
-				PRINTLN(pmSwitch);
+				PRINT(pmSwitch);
 			}
 			else if(pmSwitch == 1) // You need a pass to go on to pmMode, it should be "2#111"
 			{
-				PRINTLN(pmSwitch);
+				PRINT(pmSwitch);
 			}
 			else if(pmSwitch == 2) // You need to give a location you want to change the information of
 			{
-				PRINTLN(pmSwitch);
+				PRINT(pmSwitch);
 			}
 		}
 	}
 	else // You are in pmMode, here you change the information you have chosen to change
 	{
-		PRINTLN(pmMode);
+		PRINT(pmMode);
 
 		if(stadium == 0) // 1st piece, the Latitude of the coördinate
 		{
-			PRINTLN(stadium);
+			PRINT(stadium);
 		}
 		else if(stadium == 1) // 2nd piece, the Longitude of the coördinate
 		{
-			PRINTLN(stadium);
+			PRINT(stadium);
 		}
 		else if(stadium == 2) // 3st piece, the Password of the coördinate
 		{
-			PRINTLN(stadium);
+			PRINT(stadium);
 		}
 	}
-
+	Serial.println("");
 
 }
