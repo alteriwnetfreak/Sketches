@@ -30,7 +30,7 @@ TinyGPSPlus gps;
 
 
 void setup() {
-	Serial.begin(2400); 
+	Serial.begin(2400);
 	serial_connection.begin(9600);
 	Serial.println("GPS Start!");
 }

@@ -1,6 +1,14 @@
 //----------------------------------------------------
 // Test Gyroscoop
 //----------------------------------------------------
+// Include FastLED
+#include "FastLED.h"
+
+#define PIN A5
+#define NUM_LEDS 6
+CRGB leds[NUM_LEDS];
+
+
 // Include Gyroscope
 #include <Wire.h>
 
@@ -10,48 +18,41 @@ int pitch, roll;
 int tiltFactor;
 
 
-// Include FastLED
-#include "FastLED.h"
-
-#define PIN A5
-#define NUM_LEDS 6
-CRGB leds[NUM_LEDS];
-
-
 // Setup
 void setup() {
+	// Initialize Gyro
+	setupMPU();
+
 	// Initialize LED's
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
 
-	// Initialize Gyro
 	Serial.begin(9600);
-	Wire.begin();
-	setupMPU();
 }
 
 // Loop
-void loop() {
+void loop() 
+{
 	recordAccelRegisters();
 	printData();
-
-	for(int i = 0; i < NUM_LEDS; i++)
-	{
-		// if(i < tiltFactor)
-		// {
-		// 	leds[i].setRGB(0, 100, 255);
-		// }
-		// else
-		// {
-		// 	leds[i].setRGB(0, 0, 0);
-		// }
-		leds[i].setRGB(0, 0, 255);
-	}
-	FastLED.show();
-
 	delay(100);
 }
-
 // Functions
+// FastLED functions
+void writeLED(byte color, byte led) 
+{
+	if (color == 1){ 
+		leds[led] = CRGB::Red; 
+	} else if (color == 2) { 
+		leds[led] = CRGB::Green; 
+	} else if (color == 3) { 
+		leds[led] = CRGB::Blue; 
+	} else if (color == 0) { 
+		leds[led] = CRGB::Black; 
+	}
+	FastLED.show();
+}
+
+// Gyro functions
 void setupMPU(){
 	Wire.begin();
 	Wire.beginTransmission(0x68);
@@ -73,6 +74,7 @@ void setupMPU(){
 	Wire.endTransmission(); 
 }
 
+
 void recordAccelRegisters() {
 	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 	Wire.write(0x3B); //Starting register for Accel Readings
@@ -84,7 +86,6 @@ void recordAccelRegisters() {
 	accelZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
 	processAccelData();
 }
-
 void processAccelData(){
 	gForceX = accelX / 16384.0;
 	gForceY = accelY / 16384.0; 
@@ -108,4 +109,9 @@ void printData() {
 	Serial.print(roll);
 	Serial.print(" tiltFactor= \t");
 	Serial.println(tiltFactor);
+
+	for(byte i = 0; i < NUM_LEDS; i++)
+	{
+		writeLED(3, i);
+	}
 }
