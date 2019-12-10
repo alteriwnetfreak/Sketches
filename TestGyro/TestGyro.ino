@@ -1,14 +1,6 @@
 //----------------------------------------------------
 // Test Gyroscoop
 //----------------------------------------------------
-// Include FastLED
-#include "FastLED.h"
-
-#define PIN A5
-#define NUM_LEDS 6
-CRGB leds[NUM_LEDS];
-
-
 // Include Gyroscope
 #include <Wire.h>
 
@@ -16,17 +8,25 @@ long accelX, accelY, accelZ;
 float gForceX, gForceY, gForceZ;
 int pitch, roll;
 int tiltFactor;
+byte tiltMax = 15;
+
+
+// Include LCD
+#include <LiquidCrystal.h>
+
+const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
 // Setup
-void setup() {
+void setup() 
+{
+	// Initialize Serial | LCD
+	Serial.begin(9600);
+	lcd.begin(16, 2);
+
 	// Initialize Gyro
 	setupMPU();
-
-	// Initialize LED's
-	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-
-	Serial.begin(9600);
 }
 
 // Loop
@@ -36,26 +36,12 @@ void loop()
 	printData();
 	delay(100);
 }
-// Functions
-// FastLED functions
-void writeLED(byte color, byte led) 
-{
-	if (color == 1){ 
-		leds[led] = CRGB::Red; 
-	} else if (color == 2) { 
-		leds[led] = CRGB::Green; 
-	} else if (color == 3) { 
-		leds[led] = CRGB::Blue; 
-	} else if (color == 0) { 
-		leds[led] = CRGB::Black; 
-	}
-	FastLED.show();
-}
 
+// Functions
 // Gyro functions
 void setupMPU(){
 	Wire.begin();
-	Wire.beginTransmission(0x68);
+	Wire.beginTransmission(0x69);
 	Wire.write(0x6B);
 	Wire.write(0);
 	Wire.endTransmission(true);
@@ -73,8 +59,6 @@ void setupMPU(){
 	Wire.write(0b00000000); //Setting the accel to +/- 2g
 	Wire.endTransmission(); 
 }
-
-
 void recordAccelRegisters() {
 	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 	Wire.write(0x3B); //Starting register for Accel Readings
@@ -91,9 +75,9 @@ void processAccelData(){
 	gForceY = accelY / 16384.0; 
 	gForceZ = accelZ / 16384.0;
 
-	pitch = abs(atan(-1 * accelX / sqrt(pow(accelY, 2) + pow(accelZ, 2))) * 180 / PI);
-	roll = abs(atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI);
-	tiltFactor = map(pitch, 0, 20, 0, 6);
+	pitch = (atan(-1 * accelX / sqrt(pow(accelY, 2) + pow(accelZ, 2))) * 180 / PI);
+	roll = (atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI);
+	tiltFactor = map(roll, -10, 10, -7, 7);
 }
 void printData() {
 	// Serial.print(" Accel (g)");
@@ -103,15 +87,23 @@ void printData() {
 	// Serial.print(gForceY);
 	// Serial.print(" Z= \t");
 	// Serial.print(gForceZ);
-	Serial.print(" Pitch= \t");
+
+	Serial.print("Pitch = ");
 	Serial.print(pitch);
-	Serial.print(" Roll= \t");
+	Serial.print("\tRoll = ");
 	Serial.print(roll);
-	Serial.print(" tiltFactor= \t");
+	Serial.print("\tTilt factor = ");
 	Serial.println(tiltFactor);
 
-	for(byte i = 0; i < NUM_LEDS; i++)
+	lcd.home();
+	lcd.print("Level:");
+	for(int i = 0; i < tiltMax; i++)
 	{
-		writeLED(3, i);
+		lcd.setCursor(i, 1);
+		if(i == 7 - tiltFactor) {
+			lcd.print("0");
+		} else {
+			lcd.print("_");
+		}
 	}
 }

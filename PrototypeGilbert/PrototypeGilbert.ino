@@ -188,11 +188,11 @@ void loop()
 			giveData();
 			if(pmSwitch == 0) // pmSwitch = 0, Not in ProgrammerMode | Should be the game
 			{
-				if(gps.location.isUpdated()) 
+				if(gps.location.isUpdated()) // Every time the GPS get's a new location
 				{
 					Serial.print("Latitude: ");
-					Serial.println(gps.location.lat(), 6);
-					Serial.print("Longitude: ");
+					Serial.print(gps.location.lat(), 6);
+					Serial.print("\tLongitude: ");
 					Serial.println(gps.location.lng(), 6);
 
 					if(dataCount < 12)
@@ -214,12 +214,12 @@ void loop()
 							clearData();
 						}
 					}
-					else
+					else // You have been to all the locations/points || time is up
 					{
 						youHaveWonTheGame = true;
 					}
 				}
-				else
+				else // When the GPS does not get a new location
 				{
 					showOnLCD();
 				}
