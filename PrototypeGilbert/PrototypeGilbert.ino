@@ -46,10 +46,6 @@ char data[passwordLength] = "";
 char COdata[latCOsize] = "";
 byte dataCount = 0;
 
-float latlngCO[latlngAmount][2];
-char passWord[latlngAmount][passwordLength];
-byte passwordCorrect[latlngAmount] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
 char programmerMode[passwordLength] = "2#111";
 byte COposition;
 
@@ -63,6 +59,9 @@ byte COposition;
 SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 byte nextLocation = 0;
+bool onDestination;
+float LATDifference, LONGDifference;
+int disToDes;
 
 
 //*********************************************
@@ -82,6 +81,9 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 int sizeCO, sizePass;
 float valueF;
 char valueC[6];
+float latlngCO[latlngAmount][2];
+char passWord[latlngAmount][passwordLength];
+byte passwordCorrect[latlngAmount] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
 //*********************************************
@@ -150,21 +152,24 @@ void loop()
 		{
 			if(millis() - knopIngedrukt >= 5000) 
 			{
+				rememberTime = millis();
 				knopIngedrukt = 0;
 				lcd.clear();
 				lcd.home();
-				if(pmSwitch == 0) // Go into pmMode
+				while(millis() - rememberTime < 1000)
 				{
-					lcd.print("PMMode pass: ");
-					pmSwitch = 1;
-				} 
-				else if(pmSwitch >= 1) // Get out of pmMode
-				{
-					lcd.print("Back to game!");
-					pmSwitch = 0;
-					pmMode = false;
+					if(pmSwitch == 0) // Go into pmMode
+					{
+						lcd.print("PMMode pass: ");
+						pmSwitch = 1;
+					} 
+					else if(pmSwitch >= 1) // Get out of pmMode
+					{
+						lcd.print("Back to game!");
+						pmSwitch = 0;
+						pmMode = false;
+					}
 				}
-				delay(1000);
 				lcd.clear();
 			}
 		}
@@ -190,28 +195,45 @@ void loop()
 			{
 				if(gps.location.isUpdated()) // Every time the GPS get's a new location
 				{
+					// Code for Coordinates from GPS
+					LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
+					LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
+					disToDes = sqrt(sq(LATDifference) + sq(LONGDifference));
 					Serial.print("Latitude: ");
-					Serial.print(gps.location.lat(), 6);
-					Serial.print("\tLongitude: ");
-					Serial.println(gps.location.lng(), 6);
+					Serial.print(LATDifference); 
+					Serial.print("\t");
+					Serial.print("Longitude: ");
+					Serial.print(LONGDifference);
+					Serial.print("\t");
+					Serial.print("Distance: ");
+					Serial.println(disToDes);
 
 					if(dataCount < 12)
 					{
-						lcd.home();
-						lcd.print("Password: ");
-						if(dataCount == passwordLength - 1)
+						if(onDestination)
 						{
-							if(!strcmp(data, passWord[nextLocation])) // Password Correct
+							lcd.home();
+							lcd.print("Password: ");
+							if(dataCount == passwordLength - 1)
 							{
-								showOnLCD();
-								passwordCorrect[nextLocation] = 1;
-								nextLocation++;
-							} 
-							else // Password Incorrect
-							{
-								showOnLCD();
+								if(!strcmp(data, passWord[nextLocation])) // Password Correct
+								{
+									showOnLCD();
+									passwordCorrect[nextLocation] = 1;
+									nextLocation++;
+								} 
+								else // Password Incorrect
+								{
+									showOnLCD();
+								}
+								clearData();
 							}
-							clearData();
+						}
+						else // Not at the desired location | show disToDes on LCD
+						{
+							lcd.print("Distance:");
+							lcd.setCursor(0, 1);
+							lcd.print(disToDes);
 						}
 					}
 					else // You have been to all the locations/points || time is up
@@ -221,6 +243,7 @@ void loop()
 				}
 				else // When the GPS does not get a new location
 				{
+					clearData();
 					showOnLCD();
 				}
 			} 
@@ -415,10 +438,14 @@ void showOnLCD()
 				if(pmSwitch == 0) {
 					if(gps.location.isUpdated()) {
 						if(dataCount < 12) {
-							if(!strcmp(data, passWord[nextLocation])) {
-								lcd.print("Correct!");
+							if(onDestination) {
+								if(!strcmp(data, passWord[nextLocation])) {
+									lcd.print("Correct!");
+								} else {
+									lcd.print("Incorrect!");
+								}
 							} else {
-								lcd.print("Incorrect!");
+								//
 							}
 						} else {
 							lcd.print("You won! Go back");
