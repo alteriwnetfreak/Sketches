@@ -133,7 +133,7 @@ void setup()
 // LOOP
 void loop()
 {
-	while(serial_connection.available()) {
+	while(serial_connection.available()){
 		gps.encode(serial_connection.read());
 	}
 
@@ -188,22 +188,13 @@ void loop()
 			giveData();
 			if(pmSwitch == 0) // pmSwitch = 0, Not in ProgrammerMode | Should be the game
 			{
-				if(gps.location.isUpdated()) {
-					Serial.print("Satellite count: ");
-					Serial.println(gps.satellites.value());
+				if(gps.location.isUpdated()) 
+				{
 					Serial.print("Latitude: ");
 					Serial.println(gps.location.lat(), 6);
 					Serial.print("Longitude: ");
 					Serial.println(gps.location.lng(), 6);
-					Serial.print("Speed MPH: ");
-					Serial.println(gps.speed.mph());
-					Serial.print("Altitude: ");
-					Serial.println(gps.altitude.feet());
-					Serial.println("");
 
-
-					
-					
 					if(dataCount < 12)
 					{
 						lcd.home();
@@ -227,6 +218,10 @@ void loop()
 					{
 						youHaveWonTheGame = true;
 					}
+				}
+				else
+				{
+					showOnLCD();
 				}
 			} 
 			else if(pmSwitch == 1) // pmSwitch = 1, First stage of pmMode | logging in
@@ -353,7 +348,7 @@ char* giveCoordinate()
 	{
 		COdata[dataCount] = customKey;
 		dataCount++;
-		lcd.setCursor(5, 1);
+		lcd.setCursor(0, 1);
 		lcd.print(COdata);
 		Serial.println(COdata);
 	}
@@ -418,16 +413,22 @@ void showOnLCD()
 		if(!youHaveWonTheGame) {
 			if(!pmMode) {
 				if(pmSwitch == 0) {
-					if(dataCount < 12) {
-						if(!strcmp(data, passWord[nextLocation])) {
-							lcd.print("Correct!");
+					if(gps.location.isUpdated()) {
+						if(dataCount < 12) {
+							if(!strcmp(data, passWord[nextLocation])) {
+								lcd.print("Correct!");
+							} else {
+								lcd.print("Incorrect!");
+							}
 						} else {
-							lcd.print("Incorrect!");
+							lcd.print("You won! Go back");
+							lcd.setCursor(0, 1);
+							lcd.print(" to The Circle");
 						}
 					} else {
-						lcd.print("You won! Go back");
+						lcd.print("SEARCHING FOR:");
 						lcd.setCursor(0, 1);
-						lcd.print(" to The Circle");
+						lcd.print("Connection");
 					}
 				} else if(pmSwitch == 1) {
 					if(!strcmp(data, programmerMode)) {
