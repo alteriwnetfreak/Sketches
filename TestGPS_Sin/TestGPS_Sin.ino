@@ -11,67 +11,58 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
+SoftwareSerial ss(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 
+// Include LCD
+#include <LiquidCrystal.h>
 
-//*********************************************
-// SINUS VARIABLES
-//*********************************************
-// float rad_nr = 10.0; // pi = 3.14159
-// int rad_divider = 11;
-// float radian = rad_nr/rad_divider;
-
-// float lvler = 140.8;
-// float amp;
-
-// int potPin = 1; // Pin voor de PotentioMeter: A1
-// float potVal = 0.0;
+const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
 void setup() {
-	Serial.begin(2400);
-	serial_connection.begin(9600);
+	Serial.begin(9600);
+	ss.begin(9600);
 	Serial.println("GPS Start!");
+
+	lcd.begin(16, 2);
+	lcd.print("GPS Start!");
 }
 
 void loop() {
 	//*********************************************
 	// GPS
 	//*********************************************
-	while(serial_connection.available()) {
-		gps.encode(serial_connection.read());
+	lcd.home();
+	while(ss.available()) {
+		// gps.encode(ss.read());
+		char c = ss.read();
+
+		Serial.write(c);
+
+		lcd.write(c);
 	}
 	
-	if(gps.location.isUpdated()) {
-		Serial.print("Satellite count: ");
-		Serial.println(gps.satellites.value());
-		Serial.print("Latitude: ");
-		Serial.println(gps.location.lat(), 6);
-		Serial.print("Longitude: ");
-		Serial.println(gps.location.lng(), 6);
-		Serial.print("Speed MPH: ");
-		Serial.println(gps.speed.mph());
-		Serial.print("Altitude: ");
-		Serial.println(gps.altitude.feet());
-		Serial.println("");
-	}
-	
+	// if(gps.location.isUpdated()) {
+	// 	Serial.print("Satellite count: ");
+	// 	Serial.println(gps.satellites.value());
+	// 	Serial.print("Latitude: ");
+	// 	Serial.println(gps.location.lat(), 6);
+	// 	Serial.print("Longitude: ");
+	// 	Serial.println(gps.location.lng(), 6);
+	// 	Serial.print("Speed MPH: ");
+	// 	Serial.println(gps.speed.mph());
+	// 	Serial.print("Altitude: ");
+	// 	Serial.println(gps.altitude.feet());
+	// 	Serial.println("");
 
+	// 	lcd.clear();
+	// 	lcd.home();
+	// 	lcd.print("LAT: ");
+	// 	lcd.print(gps.location.lat(), 6);
 
-	//*********************************************
-	// SINUS
-	//*********************************************
-	// potVal = analogRead(potPin);
-	// amp = potVal / lvler;
-	// //Serial.println(potVal);
-	
-	// Serial.println(amp*sin(radian));
-	
-	// radian = radian + rad_nr/rad_divider;
-	// if(radian >= rad_nr) {
-	// 	radian = rad_nr/rad_divider;
+	// 	lcd.print("LNG: ");
+	// 	lcd.print(gps.location.lng(), 6);
 	// }
-
-	//Serial.println("");
 }

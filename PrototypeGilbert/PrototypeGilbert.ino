@@ -59,7 +59,7 @@ byte COposition;
 SoftwareSerial serial_connection(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
 byte nextLocation = 0;
-bool onDestination;
+bool onDestination = false;
 float LATDifference, LONGDifference;
 int disToDes;
 
@@ -120,8 +120,8 @@ void setup()
 	// Read EEPROM for coördinates en passwords
 	EEPROM_read();
 	
-	// Button for ProgrammerMode
-	pinMode(6, INPUT);
+	// // Button for ProgrammerMode
+	// pinMode(6, INPUT);
 
 	// Initialize the leds
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
@@ -129,7 +129,6 @@ void setup()
 	// Initialize LCD
 	lcd.begin(16, 2);
 	lcd.clear();
-	Serial.println("Voer wachtwoord in: ");
 }
 
 // LOOP
@@ -139,49 +138,56 @@ void loop()
 		gps.encode(serial_connection.read());
 	}
 
-	// Code for button pressed, checking if button is pressed long enough
-	byte knop = digitalRead(6);
-	if(knop != knopStatus) 
-	{
-		knopStatus = knop;
-		if(knop == 1) 
-		{
-			knopIngedrukt = millis();
-		} 
-		else 
-		{
-			if(millis() - knopIngedrukt >= 5000) 
-			{
-				rememberTime = millis();
-				knopIngedrukt = 0;
-				lcd.clear();
-				lcd.home();
-				while(millis() - rememberTime < 1000)
-				{
-					if(pmSwitch == 0) // Go into pmMode
-					{
-						lcd.print("PMMode pass: ");
-						pmSwitch = 1;
-					} 
-					else if(pmSwitch >= 1) // Get out of pmMode
-					{
-						lcd.print("Back to game!");
-						pmSwitch = 0;
-						pmMode = false;
-					}
-				}
-				lcd.clear();
-			}
-		}
-	}
+	// // Code for button pressed, checking if button is pressed long enough
+	// byte knop = digitalRead(6);
+	// if(knop != knopStatus) 
+	// {
+	// 	knopStatus = knop;
+	// 	if(knop == 1) 
+	// 	{
+	// 		knopIngedrukt = millis();
+	// 	} 
+	// 	else 
+	// 	{
+	// 		if(millis() - knopIngedrukt >= 5000) 
+	// 		{
+	// 			rememberTime = millis();
+	// 			knopIngedrukt = 0;
+	// 			lcd.clear();
+	// 			lcd.home();
+	// 			while(millis() - rememberTime < 1000)
+	// 			{
+	// 				if(pmSwitch == 0) // Go into pmMode
+	// 				{
+	// 					lcd.print("PMMode pass: ");
+	// 					pmSwitch = 1;
+	// 				} 
+	// 				else if(pmSwitch >= 1) // Get out of pmMode
+	// 				{
+	// 					lcd.print("Back to game!");
+	// 					pmSwitch = 0;
+	// 					pmMode = false;
+	// 				}
+	// 			}
+	// 			lcd.clear();
+	// 		}
+	// 	}
+	// }
 
 	// Code for LED's, checking which has to turn what color
 	for(byte i = 0; i < NUM_LEDS; i++) 
 	{
-		if(passwordCorrect[i] == 1) {
+		if(youHaveWonTheGame)
+		{
 			writeLED(2, i);
-		} else {
-			writeLED(0, i);
+		}
+		else
+		{
+			if(passwordCorrect[i] == 1) {
+				writeLED(2, i);
+			} else {
+				writeLED(0, i);
+			}
 		}
 	}
 
@@ -208,7 +214,7 @@ void loop()
 					Serial.print("Distance: ");
 					Serial.println(disToDes);
 
-					if(dataCount < 12)
+					if(nextLocation < latlngAmount)
 					{
 						if(onDestination)
 						{
@@ -216,13 +222,15 @@ void loop()
 							lcd.print("Password: ");
 							if(dataCount == passwordLength - 1)
 							{
-								if(!strcmp(data, passWord[nextLocation])) // Password Correct
+								if(!strcmp(data, passWord[nextLocation])) // Password Correct | Go on to next point
 								{
 									showOnLCD();
 									passwordCorrect[nextLocation] = 1;
 									nextLocation++;
+									Serial.println(nextLocation);
+									onDestination = false;
 								} 
-								else // Password Incorrect
+								else // Password Incorrect | try again
 								{
 									showOnLCD();
 								}
@@ -231,9 +239,15 @@ void loop()
 						}
 						else // Not at the desired location | show disToDes on LCD
 						{
+							lcd.home();
 							lcd.print("Distance:");
 							lcd.setCursor(0, 1);
 							lcd.print(disToDes);
+
+							if(disToDes < 10)
+							{
+								onDestination = true;
+							}
 						}
 					}
 					else // You have been to all the locations/points || time is up
@@ -241,11 +255,15 @@ void loop()
 						youHaveWonTheGame = true;
 					}
 				}
-				else // When the GPS does not get a new location
-				{
-					clearData();
-					showOnLCD();
-				}
+				// else // When the GPS does not get a new location
+				// {
+				// 	clearData();
+				// 	// lcd.clear();
+				// 	lcd.home();
+				// 	lcd.print("SEARCHING FOR:");
+				// 	lcd.setCursor(0, 1);
+				// 	lcd.print("Connection");
+				// }
 			} 
 			else if(pmSwitch == 1) // pmSwitch = 1, First stage of pmMode | logging in
 			{
@@ -436,27 +454,25 @@ void showOnLCD()
 		if(!youHaveWonTheGame) {
 			if(!pmMode) {
 				if(pmSwitch == 0) {
-					if(gps.location.isUpdated()) {
-						if(dataCount < 12) {
-							if(onDestination) {
+					// if(gps.location.isUpdated()) {
+						if(nextLocation < latlngAmount) {
+							// if(onDestination) {
 								if(!strcmp(data, passWord[nextLocation])) {
 									lcd.print("Correct!");
 								} else {
 									lcd.print("Incorrect!");
 								}
-							} else {
+							// } else {
 								//
-							}
+							// }
 						} else {
 							lcd.print("You won! Go back");
 							lcd.setCursor(0, 1);
 							lcd.print(" to The Circle");
 						}
-					} else {
-						lcd.print("SEARCHING FOR:");
-						lcd.setCursor(0, 1);
-						lcd.print("Connection");
-					}
+					// } else {
+					// 	// 
+					// }
 				} else if(pmSwitch == 1) {
 					if(!strcmp(data, programmerMode)) {
 						lcd.print("Which location?");
