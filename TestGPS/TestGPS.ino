@@ -21,48 +21,46 @@ const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
-void setup() {
+void setup() 
+{
 	Serial.begin(9600);
 	ss.begin(9600);
 	Serial.println("GPS Start!");
 
 	lcd.begin(16, 2);
+	lcd.clear();
+	lcd.home();
 	lcd.print("GPS Start!");
 }
 
 void loop() {
-	//*********************************************
-	// GPS
-	//*********************************************
-	lcd.home();
-	while(ss.available()) {
-		// gps.encode(ss.read());
-		char c = ss.read();
+	while(ss.available() > 0)
+	{
+		gps.encode(ss.read());
 
-		Serial.write(c);
-
-		lcd.write(c);
+		// char c = ss.read();
+		// Serial.write(c);
+		// lcd.write(c);
 	}
 	
-	// if(gps.location.isUpdated()) {
-	// 	Serial.print("Satellite count: ");
-	// 	Serial.println(gps.satellites.value());
-	// 	Serial.print("Latitude: ");
-	// 	Serial.println(gps.location.lat(), 6);
-	// 	Serial.print("Longitude: ");
-	// 	Serial.println(gps.location.lng(), 6);
-	// 	Serial.print("Speed MPH: ");
-	// 	Serial.println(gps.speed.mph());
-	// 	Serial.print("Altitude: ");
-	// 	Serial.println(gps.altitude.feet());
-	// 	Serial.println("");
+	if(gps.location.isUpdated())
+	{
+		float lat = gps.location.lat();
+		float lng = gps.location.lng();
 
-	// 	lcd.clear();
-	// 	lcd.home();
-	// 	lcd.print("LAT: ");
-	// 	lcd.print(gps.location.lat(), 6);
+		Serial.print("Satellite count: ");
+		Serial.println(gps.satellites.value());
+		Serial.print("Latitude: ");
+		Serial.println(lat, 6);
+		Serial.print("Longitude: ");
+		Serial.println(lng, 6);
 
-	// 	lcd.print("LNG: ");
-	// 	lcd.print(gps.location.lng(), 6);
-	// }
+		lcd.clear();
+		lcd.home();
+		lcd.print("LAT: ");
+		lcd.print(lat, 6);
+		lcd.setCursor(0, 1);
+		lcd.print("LNG: ");
+		lcd.print(lng, 6);
+	}
 }

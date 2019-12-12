@@ -17,10 +17,28 @@ byte tiltMax = 15;
 const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
+// bytes for custom characters
+byte customCharacter[8][8] =
+{ 
+	{ 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111 },
+	{ 0b00000, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111 },
+	{ 0b00000, 0b00000, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111 },
+	{ 0b00000, 0b00000, 0b00000, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111 },
+	{ 0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111, 0b11111, 0b11111 },
+	{ 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111, 0b11111 },
+	{ 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111 },
+	{ 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111 }
+};
 
 // Setup
 void setup() 
 {
+	// Creating the custom characters
+	for(byte i = 0; i < 8; i++)
+	{
+		lcd.createChar(i, customCharacter[i]);
+	}
+
 	// Initialize Serial | LCD
 	Serial.begin(9600);
 	lcd.begin(16, 2);
@@ -100,10 +118,12 @@ void printData() {
 	for(int i = 0; i < tiltMax; i++)
 	{
 		lcd.setCursor(i, 1);
-		if(i == 7 - tiltFactor) {
-			lcd.print("0");
-		} else {
-			lcd.print("_");
-		}
+		lcd.write(byte(constrain(abs(tiltFactor - (i - 7)), 0, 7)));
+
+		// if(i == 7 - tiltFactor) {
+		// 	lcd.print("0");
+		// } else {
+		// 	lcd.print("_");
+		// }
 	}
 }
