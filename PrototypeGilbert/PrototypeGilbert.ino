@@ -116,6 +116,7 @@ long rememberTime = 0;
 bool rememberState = false;
 unsigned long timeBeforePause = 2700000;
 unsigned long nextPhaseBegin;
+byte phaseChanged = 0;
 
 
 // SETUP
@@ -135,6 +136,7 @@ void setup()
 
 	// Initialize the leds
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
+	nextPhaseBegin = millis();
 }
 
 // LOOP
@@ -152,7 +154,6 @@ void loop()
 			} else {
 				writeLED(2, i);
 			}
-
 			if(millis() - rememberTime > 500) {
 				rememberTime = millis();
 				colorChange = !colorChange;
@@ -172,7 +173,6 @@ void loop()
 				} else {
 					writeLED(2, i);
 				}
-
 				if(millis() - rememberTime > 500) {
 					rememberTime = millis();
 					colorChange = !colorChange;
@@ -200,50 +200,18 @@ void loop()
 						rememberTime = millis();
 						knopIngedrukt = 0;
 						lcd.clear();
-						while(millis() - rememberTime < 1000)
+						lcd.home();
+						if(pmSwitch == 0) // Go into pmMode
 						{
-							lcd.home();
-							if(pmSwitch == 0) // Go into pmMode
-							{
-								lcd.print("PMMode pass: ");
-								pmSwitch = 1;
-							} 
-							else if(pmSwitch >= 1) // Get out of pmMode
-							{
-								lcd.print("Back to game!");
-								pmSwitch = 0;
-								pmMode = false;
-							}
+							pmSwitch = 1;
+						} 
+						else if(pmSwitch >= 1) // Get out of pmMode
+						{
+							waitForLCD = true;
+							pmSwitch = 0;
+							pmMode = false;
 						}
 						lcd.clear();
-
-						// rememberTime = millis();
-						// knopIngedrukt = 0;
-						// lcd.clear();
-						// if(!rememberState)
-						// {
-						// 	lcd.home();
-						// 	if(pmSwitch == 0) // Go into pmMode
-						// 	{
-						// 		lcd.print("PMMode pass: ");
-						// 		pmSwitch = 1;
-						// 	} 
-						// 	else if(pmSwitch >= 1) // Get out of pmMode
-						// 	{
-						// 		lcd.print("Back to game!");
-						// 		pmSwitch = 0;
-						// 		pmMode = false;
-						// 	}
-						// 	rememberState = true;
-						// }
-						// else
-						// {
-						// 	if(millis() - rememberTime < 700)
-						// 	{
-								
-						// 	}
-						// }
-						// lcd.clear();
 					}
 				}
 			}
@@ -275,7 +243,7 @@ void loop()
 
 						if(nextLocation < 6)
 						{
-							if(millis() < timeBeforePause)
+							if(millis() - nextPhaseBegin < timeBeforePause) // Zolang de timer kleiner is dan timeBeforePause
 							{
 								// if(onDestination)
 								// {
@@ -290,7 +258,6 @@ void loop()
 											waitForLCD = true;
 											
 											passwordCorrect[nextLocation] = 1;
-											
 											onDestination = false;
 										} 
 										else // Password Incorrect | try again
@@ -310,12 +277,17 @@ void loop()
 								// 	}
 								// }
 							} 
-							else
+							else // Als de timer groter is dan timeBeforePause | Niks moet meer gedaan kunnen worden, behalve 1 ding
 							{
 								// do nothing
 								changeLCDtimer = millis();
 								lcd.clear();
 								waitForLCD = true;
+
+								// if(nextPhaseBegin > timeBeforePause - millis())
+								// {
+
+								// }
 							}
 						}
 						else // You have been to all the locations/points || time is up
@@ -336,19 +308,16 @@ void loop()
 					{
 						if(!strcmp(data, programmerMode)) // If pmMode pass is correct | Go on to next phase
 						{
-							changeLCDtimer = millis();
-							lcd.clear();
-							waitForLCD = true;
 							Serial.println("Old Coördinates: ");
 							EEPROM_read();
-							pmSwitch++;
+							pmSwitch = 2;
+							lcd.clear();
 						} 
 						else // If pmMode pass is incorrect | Go back to the game
 						{
 							changeLCDtimer = millis();
 							lcd.clear();
 							waitForLCD = true;
-							pmSwitch = 0;
 						}
 						clearData();
 					}
@@ -421,13 +390,11 @@ void loop()
 						sizePass = (COposition - 1) * (12*sizeof(char)) + sizeof(latlngCO); // Location in the EEPROM
 						EEPROM.put(sizePass, COdata);
 						EEPROM_read();
-						changeLCDtimer = millis();
-						lcd.clear();
-						waitForLCD = true;
-						clearData();
 						pmMode = !pmMode;
 						pmSwitch = 2;
 						pmState = 0;
+						clearData();
+						lcd.clear();
 					}
 				}
 			}
@@ -437,9 +404,10 @@ void loop()
 			pmMode = false;
 			pmSwitch = 0;
 			pmState = 0;
-			changeLCDtimer = millis();
-			lcd.clear();
-			waitForLCD = true;
+			
+			lcd.print("Finish! Go back");
+			lcd.setCursor(0, 1);
+			lcd.print(" to The Circle!");
 		}
 	}
 	else
@@ -451,19 +419,25 @@ void loop()
 					if(pmSwitch == 0) {
 						if(nextLocation < 6) {
 							if(millis() < timeBeforePause) {
-								if(!strcmp(data, passWord[nextLocation])) {
-									lcd.print("Correct! Go to");
-									lcd.setCursor(0, 1);
-									lcd.print(" next location");
-									nextLocation++;
-								} else {
-									lcd.print("Incorrect!");
-									lcd.setCursor(0, 1);
-									lcd.print("Pls try again...");
+								lcd.print("Back to game!");
+								if(dataCount == passwordLength - 1)
+								{
+									lcd.clear();
+									lcd.home();
+									if(!strcmp(data, passWord[nextLocation])) {
+										lcd.print("Correct! Go to");
+										lcd.setCursor(0, 1);
+										lcd.print(" next location");
+										nextLocation++;
+									} else {
+										lcd.print("Incorrect! Pls");
+										lcd.setCursor(0, 1);
+										lcd.print(" try again...");
+									}
+									clearData();
 								}
-								clearData();
 							} else {
-								lcd.print("Phase 1 end. Go");
+								lcd.print("End of phase. Go");
 								lcd.setCursor(0, 1);
 								lcd.print(" to The Circle.");
 							}
@@ -471,38 +445,30 @@ void loop()
 							//
 						}
 					} else if(pmSwitch == 1) {
-						if(!strcmp(data, programmerMode)) {
-							lcd.print("Which location?");
-						} else {
-							lcd.print("Onjuist!");
-						}
+						lcd.print("Onjuist!");
+						pmSwitch = 0;
 					} else {
 						if(COposition == 0 || COposition > latlngAmount) {
 						    lcd.print("Niet Geldig!");
-						} else
-						{
-							lcd.print("Geef Latitude:");
 						}
 					}
 				} else {
 					if(pmState == 0) {
-						lcd.print("LAT: ");
+						lcd.print("Old LAT: ");
 						lcd.setCursor(0, 1);
 						lcd.print(latlngCO[COposition - 1][0], 6);
 					} else if(pmState == 1) {
-						lcd.print("LONG: ");
+						lcd.print("Old LONG: ");
 						lcd.setCursor(0, 1);
 						lcd.print(latlngCO[COposition - 1][1], 6);
 					} else {
-						lcd.print("Pass: ");
+						lcd.print("Old Pass: ");
 						lcd.setCursor(0, 1);
 						lcd.print(passWord[COposition - 1]);
 					}
 				}
 			} else {
-				lcd.print("Finish! Go back");
-				lcd.setCursor(0, 1);
-				lcd.print(" to The Circle!");
+				
 			}
 			rememberState = true;
 		} else {
@@ -559,10 +525,10 @@ void clearData() // data, COdata and dataCount are emptied for next use
 // EEPROM Functions
 void EEPROM_read() // Transfering data from EEPROM to variables for easy use || Happens when the Arduino starts up and when something changes
 {
-	for(byte i = 0; i < latlngAmount; i++) 
+	for(byte i = 0; i < latlngAmount; i++)
 	{
-		sizeCO = i * (2*sizeof(float)); 						// Address on EEPROM for Coördinates
-		sizePass = i * (12*sizeof(char)) + sizeof(latlngCO); 	// Address on EEPROM for passwords
+		sizeCO = i * (2*sizeof(float));							// Address on EEPROM for Coördinates
+		sizePass = i * (12*sizeof(char)) + sizeof(latlngCO);	// Address on EEPROM for passwords
 
 		latlngCO[i][0] = EEPROM.get(sizeCO, valueF);		// Latitude is put in a variable
 		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);	// Longitude is put in a variable
@@ -581,14 +547,9 @@ void EEPROM_read() // Transfering data from EEPROM to variables for easy use || 
 // FastLED Functions
 void writeLED(byte color, byte led) // Desides what LED needs which color
 {
-	if (color == 1){ 
-		leds[led] = CRGB::Red; 
-	} else if (color == 2) { 
-		leds[led] = CRGB::Green; 
-	} else if (color == 3) { 
-		leds[led] = CRGB::Blue; 
-	} else if (color == 0) { 
-		leds[led] = CRGB::Black; 
-	}
+	if (color == 1){		leds[led] = CRGB::Red;	}
+	else if (color == 2) {	leds[led] = CRGB::Green;}
+	else if (color == 3) {	leds[led] = CRGB::Blue;	}
+	else if (color == 0) {	leds[led] = CRGB::Black;}
 	FastLED.show();
 }
