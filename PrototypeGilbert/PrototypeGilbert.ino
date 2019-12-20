@@ -182,27 +182,18 @@ void loop()
 		}
 	}
 
-	for(byte i = 0; i < latlngAmount; i++) {
-		Serial.print(passwordCorrect[i]);
-	}
-	Serial.println("");
-
 	// Code for LED's, checking which has to turn what color
 	for(byte i = 0; i < NUM_LEDS; i++) {
 		if(!gameFinished) { // Give all LED's the same color
-			if(passwordCorrect[i] == 1) {
-				writeLED(2, i);
-			} else if(nextLocation == i) {
-				writeLED(3, i);
-			} else {
-				writeLED(0, i);
+			if(passwordCorrect[i] == 1) {	writeLED(2, i);
+			} else if(nextLocation == i) {	writeLED(3, i);
+			} else {						writeLED(0, i); 
 			}
 		} else {
-			if(colorChange) {
-				writeLED(0, i);
-			} else {
-				writeLED(2, i);
+			if(colorChange) {	writeLED(0, i);
+			} else {			writeLED(2, i); 
 			}
+			// Every N ms colorChange is updated, making the LED's blink
 			if(millis() - rememberTime > 500) {
 				rememberTime = millis();
 				colorChange = !colorChange;
@@ -210,10 +201,9 @@ void loop()
 		}
 	}
 
-	if(!waitForLCD) { // Main code for the game
-	
+	// Main code for the game
+	if(!waitForLCD) { 
 		if(!gameFinished) {
-
 			if(!pmMode) { // pmMode off 
 				giveData();
 				if(pmSwitch == 0) { // pmSwitch = 0, Not in ProgrammerMode | Should be the game
@@ -242,7 +232,6 @@ void loop()
 										changeLCDtimer = millis();
 										lcd.clear();
 										waitForLCD = true;
-										
 										passwordCorrect[nextLocation] = 1;
 										onDestination = false;
 									} else { // Password Incorrect | try again
@@ -264,17 +253,6 @@ void loop()
 							if(gamePhase != 2) {
 								gameFinished = true;
 							} else {
-								score = 0;
-								for(byte i = 0; i < sizeof(passwordCorrect); i++) {
-									if(passwordCorrect[i] == 1) {
-										score++;
-									}
-								}
-								lcd.home();
-								lcd.print("You are done!");
-								lcd.setCursor(0, 1);
-								lcd.print("Score: ");
-								lcd.print(score);
 								
 								clearData();
 							}
@@ -370,11 +348,9 @@ void loop()
 			changeLCDtimer = millis();
 			lcd.clear();
 			waitForLCD = true;
-			
 			pmMode = false;
 			pmSwitch = 0;
 			pmState = 0;
-			
 			// lcd.print("Finish! Go back");
 			// lcd.setCursor(0, 1);
 			// lcd.print(" to The Circle!");
@@ -449,6 +425,16 @@ void loop()
 						lcd.setCursor(0, 1);
 						lcd.print(" to The Circle.");
 						break;
+					case 3:
+						score = 0;
+						for(byte i = 0; i < sizeof(passwordCorrect); i++) {
+							if(passwordCorrect[i] == 1) { score++; }
+						}
+						lcd.print("You are done!");
+						lcd.setCursor(0, 1);
+						lcd.print("Score: ");
+						lcd.print(score);
+						break;
 				}
 			}
 			rememberState = true;
@@ -467,7 +453,6 @@ void loop()
 char* giveData() {
 	char customKey = customKeypad.getKey(); // char from keypad is saved in customKey
 	if(customKey) { // customKey is updated
-	
 		data[dataCount] = customKey;
 		dataCount++;
 		lcd.setCursor(0, 1);
@@ -500,13 +485,13 @@ void clearData() { // data, COdata and dataCount are emptied for next use
 // EEPROM Functions
 void EEPROM_read() { // Transfering data from EEPROM to variables for easy use || Happens when the Arduino starts up and when something changes
 	for(byte i = 0; i < latlngAmount; i++) {
+		// Address of EEPROM per instance of information
 		sizeCO = i * (2*sizeof(float));							// Address on EEPROM for Coördinates
 		sizePass = i * (12*sizeof(char)) + sizeof(latlngCO);	// Address on EEPROM for passwords
-
+		// Getting the information per address out of EEPROM to a variable
 		latlngCO[i][0] = EEPROM.get(sizeCO, valueF);		// Latitude is put in a variable
 		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);	// Longitude is put in a variable
 		memcpy(passWord[i], EEPROM.get(sizePass, valueC), sizeof(passWord[0])); // Password is put in a variable
-		
 		// Print the results
 		Serial.print(latlngCO[i][0], 6);
 		Serial.print("\t");
@@ -519,9 +504,9 @@ void EEPROM_read() { // Transfering data from EEPROM to variables for easy use |
 
 // FastLED Functions
 void writeLED(byte color, byte led) { // Desides what LED needs which color
-	if 		(color == 0) {	leds[led] = CRGB::Black;}
-	else if (color == 1) {	leds[led] = CRGB::Red;	}
-	else if (color == 2) {	leds[led] = CRGB::Green;}
-	else if (color == 3) {	leds[led] = CRGB::Blue;	}
+	if 		(color == 0) {	leds[led].setRGB(0, 0, 0); } // Black
+	else if (color == 1) {	leds[led].setRGB(255, 0, 0); } // Red
+	else if (color == 2) {	leds[led].setRGB(0, 255, 0); } // Green
+	else if (color == 3) {	leds[led].setRGB(0, 0, 255); } // Blue
 	FastLED.show();
 }

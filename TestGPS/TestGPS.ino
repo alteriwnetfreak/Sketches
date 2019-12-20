@@ -47,12 +47,21 @@ void loop() {
 	{
 		float lat = gps.location.lat();
 		float lng = gps.location.lng();
+		float latD = lat - 52.024639;
+		float lngD = lng - 5.555602;
+		float disToDes = sqrt(sq(latD) + (sq(lngD) * (90 / lat))) * 10000;
 
 		Serial.print("Satellite count: ");
-		Serial.println(gps.satellites.value());
-		Serial.print("Latitude: ");
-		Serial.println(lat, 6);
-		Serial.print("Longitude: ");
+		Serial.print(gps.satellites.value());
+		Serial.print("\tLatitude: ");
+		Serial.print(lat, 6);
+		Serial.print("\tLongitude: ");
+		Serial.print(lng, 6);
+		Serial.print("\tLat difference: ");
+		Serial.print(latD, 6);
+		Serial.print("\tLong difference: ");
+		Serial.print(lngD, 6);
+		Serial.print("\tDistance: ");
 		Serial.println(lng, 6);
 
 		lcd.clear();
