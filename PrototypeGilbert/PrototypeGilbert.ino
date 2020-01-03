@@ -116,7 +116,7 @@ byte knopStatus = 0;
 //Timers
 long rememberTime = 0;
 bool rememberState = false;
-unsigned long timeBeforePause = 27000;
+unsigned long timeBeforePause = 2700000;
 unsigned long nextPhaseBegin = 0;
 
 
@@ -125,7 +125,7 @@ void setup()
 {
 	// Initialize Serial | SS | LCD
 	Serial.begin(9600);
-	// gpSS.begin(9600);
+	gpSS.begin(9600);
 	lcd.begin(16, 2);
 	lcd.clear();
 
@@ -207,24 +207,23 @@ void loop()
 			if(!pmMode) { // pmMode off 
 				giveData();
 				if(pmSwitch == 0) { // pmSwitch = 0, Not in ProgrammerMode | Should be the game
-					// if(gps.location.isUpdated()) // Every time the GPS get's a new location
-					// {
-					// 	// Code for Coordinates from GPS
-					// 	LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
-					// 	LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
-					// 	disToDes = sqrt(sq(LATDifference) + sq(LONGDifference));
-						
-					// 	Serial.print("Latitude: ");
-					// 	Serial.print(gps.location.lat()); 
-					// 	Serial.print("\t");
-					// 	Serial.print("Longitude: ");
-					// 	Serial.print(gps.location.lng());
-					// 	Serial.print("\t");
-					// 	Serial.print("Distance: ");
-					// 	Serial.println(disToDes);
+					if(gps.location.isUpdated()) { // Every time the GPS get's a new location
+						// Code for Coordinates from GPS
+						LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
+						LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
+						disToDes = sqrt(sq(LATDifference) + sq(LONGDifference));
+
+						Serial.print("Latitude: ");
+						Serial.print(gps.location.lat()); 
+						Serial.print("\t");
+						Serial.print("Longitude: ");
+						Serial.print(gps.location.lng());
+						Serial.print("\t");
+						Serial.print("Distance: ");
+						Serial.println(disToDes);
+
 						if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) {
-							// if(onDestination)
-							// {
+							if(onDestination) {
 								lcd.home();
 								lcd.print("Password: ");
 								if(dataCount == passwordLength - 1) {
@@ -240,28 +239,23 @@ void loop()
 										waitForLCD = true;
 									}
 								}
-							// }
-							// else // Not at the desired location | show disToDes on LCD
-							// {
-							// 	waitForLCD = true;
-							// 	if(disToDes < 10)
-							// 	{
-							// 		onDestination = true;
-							// 	}
-							// }
+							} else { // Not at the desired location | show disToDes on LCD
+								waitForLCD = true;
+								if(disToDes < 5) {
+									onDestination = true;
+								}
+							}
 						} else { // You have been to all the locations/points || time is up
 							if(gamePhase != 2) {
 								gameFinished = true;
 							} else {
-								
 								clearData();
 							}
 						}
-					// }
-					// else // When the GPS does not get a new location
-					// {
-					// 	waitForLCD = true;
-					// }
+					} else {
+						// lcd.clear();
+						clearData();
+					}
 				} else if(pmSwitch == 1) { // pmSwitch = 1, First stage of pmMode | logging in
 					lcd.home();
 					lcd.print("PMMode pass: ");
@@ -362,21 +356,26 @@ void loop()
 				if(!pmMode) {
 					if(pmSwitch == 0) {
 						if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) {
-							lcd.print("Back to game!");
-							if(dataCount == passwordLength - 1) {
-								lcd.clear();
-								lcd.home();
-								if(!strcmp(data, passWord[nextLocation])) {
-									lcd.print("Correct! Go to");
-									lcd.setCursor(0, 1);
-									lcd.print(" next location");
-									nextLocation++;
-								} else {
-									lcd.print("Incorrect! Pls");
-									lcd.setCursor(0, 1);
-									lcd.print(" try again...");
+							if(onDestination) {
+								if(dataCount == passwordLength - 1) {
+									lcd.clear();
+									lcd.home();
+									if(!strcmp(data, passWord[nextLocation])) {
+										lcd.print("Correct! Go to");
+										lcd.setCursor(0, 1);
+										lcd.print(" next location");
+										nextLocation++;
+									} else {
+										lcd.print("Incorrect! Pls");
+										lcd.setCursor(0, 1);
+										lcd.print(" try again...");
+									}
+									clearData();
 								}
-								clearData();
+							} else {
+								lcd.print("Distance to Des:");
+								lcd.setCursor(0, 1);
+								lcd.print(disToDes);
 							}
 						} else {
 							//

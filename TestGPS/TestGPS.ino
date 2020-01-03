@@ -21,6 +21,12 @@ const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 
+float lat = 0;
+float lng = 0;
+float latD = 0;
+float lngD = 0;
+float disToDes = 0;
+
 void setup() 
 {
 	Serial.begin(9600);
@@ -45,11 +51,11 @@ void loop() {
 	
 	if(gps.location.isUpdated())
 	{
-		float lat = gps.location.lat();
-		float lng = gps.location.lng();
-		float latD = lat - 52.024639;
-		float lngD = lng - 5.555602;
-		float disToDes = sqrt(sq(latD) + (sq(lngD) * (90 / lat))) * 10000;
+		lat = gps.location.lat();
+		lng = gps.location.lng();
+		latD = lat - 52.024639;
+		lngD = lng - 5.555602;
+		disToDes = sqrt(sq(latD) + sq(lngD)) * 10000;
 
 		Serial.print("Satellite count: ");
 		Serial.print(gps.satellites.value());
@@ -62,7 +68,7 @@ void loop() {
 		Serial.print("\tLong difference: ");
 		Serial.print(lngD, 6);
 		Serial.print("\tDistance: ");
-		Serial.println(lng, 6);
+		Serial.println(disToDes, 6);
 
 		lcd.clear();
 		lcd.home();
