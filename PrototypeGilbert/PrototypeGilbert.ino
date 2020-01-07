@@ -131,9 +131,6 @@ void setup()
 
 	// Read EEPROM for coördinates en passwords
 	EEPROM_read();
-	
-	// // Button for ProgrammerMode
-	// pinMode(6, INPUT);
 
 	// Initialize the leds
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
@@ -143,9 +140,9 @@ void setup()
 // LOOP
 void loop()
 {
-	while(gpSS.available() > 0) {
-		gps.encode(gpSS.read());
-	}
+	// while(gpSS.available() > 0) {
+	// 	gps.encode(gpSS.read());
+	// }
 
 	// Code for button pressed, checking if button is pressed long enough
 	byte knop = digitalRead(6);
@@ -207,22 +204,7 @@ void loop()
 			if(!pmMode) { // pmMode off 
 				giveData();
 				if(pmSwitch == 0) { // pmSwitch = 0, Not in ProgrammerMode | Should be the game
-					if(gps.location.isUpdated()) { // Every time the GPS get's a new location
-						// Code for Coordinates from GPS
-						LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
-						LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
-						disToDes = sqrt(sq(LATDifference) + sq(LONGDifference));
-
-						Serial.print("Latitude: ");
-						Serial.print(gps.location.lat()); 
-						Serial.print("\t");
-						Serial.print("Longitude: ");
-						Serial.print(gps.location.lng());
-						Serial.print("\t");
-						Serial.print("Distance: ");
-						Serial.println(disToDes);
-
-						if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) {
+					if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) {
 							if(onDestination) {
 								lcd.home();
 								lcd.print("Password: ");
@@ -240,21 +222,41 @@ void loop()
 									}
 								}
 							} else { // Not at the desired location | show disToDes on LCD
-								waitForLCD = true;
-								if(disToDes < 5) {
-									onDestination = true;
+								while(gpSS.available() > 0) {
+									gps.encode(gpSS.read());
+								}
+								if(gps.location.isUpdated()) { // Every time the GPS get's a new location
+									// Code for Coordinates from GPS
+									LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
+									LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
+									disToDes = sqrt(sq(LATDifference) + sq(LONGDifference));
+
+									// Serial.print("Latitude: ");
+									// Serial.print(gps.location.lat()); 
+									// Serial.print("\t");
+									// Serial.print("Longitude: ");
+									// Serial.print(gps.location.lng());
+									// Serial.print("\t");
+									// Serial.print("Distance: ");
+									// Serial.println(disToDes);
+
+									lcd.home();
+									lcd.print("Distance to Des:");
+									lcd.setCursor(0, 1);
+									lcd.print(disToDes);
+
+									if(disToDes < 5) {
+										onDestination = true;
+									}
+									clearData();
 								}
 							}
-						} else { // You have been to all the locations/points || time is up
-							if(gamePhase != 2) {
-								gameFinished = true;
-							} else {
-								clearData();
-							}
+					} else { // You have been to all the locations/points || time is up
+						if(gamePhase != 2) {
+							gameFinished = true;
+						} else {
+							clearData();
 						}
-					} else {
-						// lcd.clear();
-						clearData();
 					}
 				} else if(pmSwitch == 1) { // pmSwitch = 1, First stage of pmMode | logging in
 					lcd.home();
@@ -372,10 +374,6 @@ void loop()
 									}
 									clearData();
 								}
-							} else {
-								lcd.print("Distance to Des:");
-								lcd.setCursor(0, 1);
-								lcd.print(disToDes);
 							}
 						} else {
 							//

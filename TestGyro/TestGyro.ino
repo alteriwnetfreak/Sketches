@@ -30,6 +30,15 @@ byte customCharacter[8][8] =
 	{ 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111 }
 };
 
+
+// Include FastLED
+#include <FastLED.h>
+
+#define PIN A4
+#define NUM_LEDS 6
+CRGB leds[NUM_LEDS];
+
+
 // Setup
 void setup() 
 {
@@ -42,6 +51,22 @@ void setup()
 	// Initialize Serial | LCD
 	Serial.begin(9600);
 	lcd.begin(16, 2);
+	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
+	
+	for(int i = 0; i < NUM_LEDS; i++)
+	{
+		leds[i].setRGB(255, 0, 0);
+	}
+	delay(500);
+	for(int i = 0; i < NUM_LEDS; i++)
+	{
+		leds[i].setRGB(0, 255, 0);
+	}
+	delay(500);
+	for(int i = 0; i < NUM_LEDS; i++)
+	{
+		leds[i].setRGB(0, 0, 255);
+	}
 
 	// Initialize Gyro
 	setupMPU();
@@ -115,15 +140,22 @@ void printData() {
 
 	lcd.home();
 	lcd.print("Level:");
+	
 	for(int i = 0; i < tiltMax; i++)
 	{
 		lcd.setCursor(i, 1);
 		lcd.write(byte(constrain(abs(tiltFactor - (i - 7)), 0, 7)));
+	}
 
-		// if(i == 7 - tiltFactor) {
-		// 	lcd.print("0");
-		// } else {
-		// 	lcd.print("_");
-		// }
+	for(int i = 0; i < NUM_LEDS; i++)
+	{
+		if(tiltFactor < i)
+		{
+			leds[i].setRGB(0, 255, 0);
+		}
+		else
+		{
+			leds[i].setRGB(0, 0, 255);
+		}
 	}
 }
