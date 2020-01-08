@@ -34,7 +34,7 @@ byte customCharacter[8][8] =
 // Include FastLED
 #include <FastLED.h>
 
-#define PIN A4
+#define PIN 6
 #define NUM_LEDS 6
 CRGB leds[NUM_LEDS];
 
@@ -52,21 +52,6 @@ void setup()
 	Serial.begin(9600);
 	lcd.begin(16, 2);
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-	
-	for(int i = 0; i < NUM_LEDS; i++)
-	{
-		leds[i].setRGB(255, 0, 0);
-	}
-	delay(500);
-	for(int i = 0; i < NUM_LEDS; i++)
-	{
-		leds[i].setRGB(0, 255, 0);
-	}
-	delay(500);
-	for(int i = 0; i < NUM_LEDS; i++)
-	{
-		leds[i].setRGB(0, 0, 255);
-	}
 
 	// Initialize Gyro
 	setupMPU();
@@ -123,6 +108,7 @@ void processAccelData(){
 	tiltFactor = map(roll, -10, 10, -7, 7);
 }
 void printData() {
+	// // Show on Serial Monitor
 	// Serial.print(" Accel (g)");
 	// Serial.print(" X= \t");
 	// Serial.print(gForceX);
@@ -130,7 +116,6 @@ void printData() {
 	// Serial.print(gForceY);
 	// Serial.print(" Z= \t");
 	// Serial.print(gForceZ);
-
 	Serial.print("Pitch = ");
 	Serial.print(pitch);
 	Serial.print("\tRoll = ");
@@ -138,15 +123,16 @@ void printData() {
 	Serial.print("\tTilt factor = ");
 	Serial.println(tiltFactor);
 
+	// Show on LCD
 	lcd.home();
 	lcd.print("Level:");
-	
 	for(int i = 0; i < tiltMax; i++)
 	{
 		lcd.setCursor(i, 1);
 		lcd.write(byte(constrain(abs(tiltFactor - (i - 7)), 0, 7)));
 	}
 
+	// Show with LED's
 	for(int i = 0; i < NUM_LEDS; i++)
 	{
 		if(tiltFactor < i)
@@ -158,4 +144,5 @@ void printData() {
 			leds[i].setRGB(0, 0, 255);
 		}
 	}
+	FastLED.show();
 }

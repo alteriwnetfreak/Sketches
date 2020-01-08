@@ -9,10 +9,10 @@
 // Include GPS
 //*********************************************
 #include <TinyGPS++.h>
-#include <SoftwareSerial.h>
+// #include <SoftwareSerial.h> // Nodig voor SoftwareSerial
 
-SoftwareSerial ss(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 TinyGPSPlus gps;
+// SoftwareSerial ss(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4 // Nodig voor SoftwareSerial
 
 // Include LCD
 #include <LiquidCrystal.h>
@@ -30,7 +30,7 @@ int disToDes = 0;
 void setup() 
 {
 	Serial.begin(9600);
-	ss.begin(9600);
+	// ss.begin(9600); // Nodig voor SoftwareSerial
 	Serial.println("GPS Start!");
 
 	lcd.begin(16, 2);
@@ -40,13 +40,12 @@ void setup()
 }
 
 void loop() {
-	while(ss.available() > 0)
+	while(Serial.available() > 0)
 	{
-		gps.encode(ss.read());
+		gps.encode(Serial.read());
 
-		// char c = ss.read();
+		// char c = Serial.read();
 		// Serial.write(c);
-		// lcd.write(c);
 	}
 	
 	if(gps.location.isUpdated())
@@ -80,3 +79,46 @@ void loop() {
 		lcd.print(disToDes, 6);
 	}
 }
+
+
+// #include <TinyGPS++.h>
+// TinyGPSPlus gps;
+
+// void loop()
+// {
+// // This sketch displays information every time a new sentence is correctly encoded.
+// 	while (serial.available() > 0)
+// 	{
+// 		gps.encode(serial.read());
+// 		if (gps.location.isUpdated())
+// 		{
+// 			// Latitude in degrees (double)
+// 			Serial.print("Latitude= ");
+// 			Serial.print(gps.location.lat(), 6);
+// 			// Longitude in degrees (double)
+// 			Serial.print(" Longitude= ");
+// 			Serial.println(gps.location.lng(), 6);
+// 		}
+// 	}
+// }
+
+
+
+//
+// Results:
+// 		SS:
+// 			$GPRMC,121938.00,V,,,,,,,080120,,,N*76
+// 			$GPVTG,,,,,,,,,N*30
+// 			$GPGGA,121938.00,,,,,0,00,99.99,,,,,,*66
+// 			$GPGSA,A,1,,,,,,,,,,,,,99.99,99.99,99.99*30
+// 			$GPGSV,1,1,01,05,,,24*7B
+// 			$GPGLL,,,,,121938.00,V,N*4A
+
+//		HS:
+// 			$GPRMC,122637.00,V,,,,,,,080120,,,N*75
+// 			$GPVTG,,,,,,,,,N*30
+// 			$GPGGA,122637.00,,,,,0,00,99.99,,,,,,*65
+// 			$GPGSA,A,1,,,,,,,,,,,,,99.99,99.99,99.99*30
+// 			$GPGLL,,,,,122637.00,V,N*49
+
+
