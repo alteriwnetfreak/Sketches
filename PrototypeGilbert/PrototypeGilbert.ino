@@ -1,14 +1,14 @@
 //----------------------------------------------------
 // PrototypeGilbert
 //----------------------------------------------------
+
 //*********************************************
 // Including keypad
 //*********************************************
 #include <Keypad.h>
 
-const byte ROWS = 4; 
-const byte COLS = 3; 
-
+const byte ROWS = 4;
+const byte COLS = 3;
 char numPad[ROWS][COLS] = {
 	{ '1', '2', '3' },
 	{ '4', '5', '6' },
@@ -16,7 +16,7 @@ char numPad[ROWS][COLS] = {
 	{ '.', '0', '#' }
 };
 //On keypad-board, from left to right
-//Connect to pins: 7 to 13
+//Connect to pins: 2 to 4, A3 to A0
 //   -->      /////// /
 //          -------------
 //          | 1   2   3 |
@@ -27,10 +27,6 @@ char numPad[ROWS][COLS] = {
 //          |           |
 //          | *   0   # |
 //          -------------
-// // DIGITAL
-// byte colPins[COLS] = { 7, 8, 9 };
-// byte rowPins[ROWS] = { 10, 11, 12, 13 };
-// // "ANALOG":
 byte colPins[COLS] = { 2, 3, 4 };
 byte rowPins[ROWS] = { A3, A2, A1, A0 };
 Keypad customKeypad = Keypad(makeKeymap(numPad), rowPins, colPins, ROWS, COLS);
@@ -109,13 +105,14 @@ bool colorChange = false;
 
 long accelX, accelY, accelZ;
 float gForceX, gForceY, gForceZ;
-int pitch, roll;
+float pitch, roll;
 
 int tiltFactor;
 byte tiltMax = 15;
 
 bool leanTooFar = true;
-bool gyrogamePlayed = false; // Op terug komen!!!!!!!!!!!!!!!!!!!!!!!!!
+bool gyrogameFinished = false;
+bool gyrogameShowLCD = false;
 
 
 // Variabelen voor ProgrammerMode
@@ -124,7 +121,7 @@ byte pmSwitch = 0;
 byte pmState = 0;
 bool gameFinished = false;
 byte gamePhase = 0;
-byte endPhase = 3;
+byte endPhase = 4;
 
 // Knop
 long knopIngedrukt = 0;
@@ -138,7 +135,9 @@ unsigned long timeBeforePause = 2700000;
 unsigned long nextPhaseBegin = 0;
 
 
+//*********************************************
 // SETUP
+//*********************************************
 void setup() 
 {
 	// Initialize Serial | SS | LCD
@@ -158,29 +157,32 @@ void setup()
 	setupMPU();
 }
 
+
+//*********************************************
 // LOOP
+//*********************************************
 void loop()
 {
 	// while(gpSS.available() > 0) {
 	// 	gps.encode(gpSS.read());
 	// }
 
+	//*********************************************
 	// Code for button pressed, checking if button is pressed long enough
+	//*********************************************
 	byte knop = digitalRead(5);
 	if(knop != knopStatus) { // knop changes constantly, so this codes runs constantly
 		knopStatus = knop;
-		if(knop == 1) { // knopIngedrukt gets the value of millis() | this is not updated while knop stays 1
-			knopIngedrukt = millis();
-		} else { // each time knop is 0, the difference between millis() and knopIngedrukt is checked
+		if(knop == 1) { knopIngedrukt = millis(); } // knopIngedrukt gets the value of millis() | this is not updated while knop stays 1
+		else { // each time knop is 0, the difference between millis() and knopIngedrukt is checked
 			if(!gameFinished) {
 				if(millis() - knopIngedrukt >= 5000) { // If the difference is more than n seconds
 					rememberTime = millis();
 					knopIngedrukt = 0;
 					lcd.clear();
 					lcd.home();
-					if(pmSwitch == 0) { // Go into pmMode
-						pmSwitch = 1;
-					} else if(pmSwitch >= 1) { // Get out of pmMode
+					if(pmSwitch == 0) { pmSwitch = 1; } // Go into pmMode
+					else if(pmSwitch >= 1) { // Get out of pmMode
 						waitForLCD = true;
 						pmSwitch = 0;
 						pmMode = false;
@@ -199,33 +201,45 @@ void loop()
 			}
 		}
 	}
+	
 
+	//*********************************************
 	// Code for LED's, checking which has to turn what color
+	//*********************************************
 	for(byte i = 0; i < NUM_LEDS; i++) {
-		if(!gameFinished) { // Give all LED's the same color
+		if(!gameFinished) { // LED logic when game is going
 			if(gamePhase != 2) {
 				if(passwordCorrect[i] == 1) { writeLED(2, i); }
-				else if(nextLocation == i) { writeLED(3, i); }
-				else {						writeLED(0, i); }
+				else if(nextLocation == i) {  writeLED(3, i); }
+				else {						  writeLED(0, i); }
 			} else {
 				for(int i = 0; i < NUM_LEDS; i++) {
 					if(abs(tiltFactor) < i) { writeLED(0, i); }
-					else { 				writeLED(1, i); }
+					else { 					  writeLED(3, i); }
 				}
 			}
-		} else {
-			if(colorChange) {	writeLED(0, i);
-			} else {			writeLED(2, i); 
-			}
-			// Every N ms colorChange is updated, making the LED's blink
-			if(millis() - rememberTime > 500) {
-				rememberTime = millis();
-				colorChange = !colorChange;
+		} else { // LED logic when a phase is over (waiting to go to the next phase)
+			if(gamePhase != 4) { // Make all LED's the same color and blink
+				if(colorChange) { writeLED(0, i); }
+				else {		  	  writeLED(2, i); }
+				// Every N ms colorChange is updated, making the LED's blink
+				if(millis() - rememberTime > 500) {
+					rememberTime = millis();
+					colorChange = !colorChange;
+				}
+			} else { // The game is over, so you get another animation
+				byte x = millis() / 100 % NUM_LEDS; // Using millis() for the animation
+				for(int i = 0; i < NUM_LEDS; i++) {
+					if(i == x) { writeLED(0, i); }
+					else { 		writeLED(3, i); }
+				}
 			}
 		}
 	}
 
-	// Main code for the game
+	//*********************************************
+	// Main code
+	//*********************************************
 	if(!waitForLCD) { 
 		if(!gameFinished) {
 			if(!pmMode) { // pmMode off 
@@ -278,34 +292,47 @@ void loop()
 						// 	}
 						// }
 					} else if(gamePhase == 2) {
-						recordAccelRegisters();
-						printData();
-						// delay(100);
-						if(leanTooFar) {
-							timeTillGyrogameEnds = millis() + 10000;
-							leanTooFar = !leanTooFar;
-						} else {
+						if(!gyrogameFinished) {
+							recordAccelRegisters();
+							printData();
+
+							// Timer gets reset if gyro is tilted too far
+							if(leanTooFar) {
+								timeTillGyrogameEnds = millis() + 10000;
+								leanTooFar = !leanTooFar;
+							}
+
+							// Checking if gyro is tilted too far or not
+							if(abs(tiltFactor) > 7){ leanTooFar = true; }
+							else { 					 leanTooFar = false; }
+
+							// Code for LCD
 							lcd.home();
 							lcd.print("Time left:");
 							lcd.setCursor(0, 1);
 							long gyroTimerOnLcd = (timeTillGyrogameEnds - millis()) / 1000;
-							if(gyroTimerOnLcd <= 0) {
+							if(gyroTimerOnLcd <= 0) { // If timer gets to 0 (zero) | change the game phase and finish the gyro game
 								gyroTimerOnLcd = 0;
-								gamePhase = 3;
+								gyrogameFinished = true;
 							}
 							lcd.print(gyroTimerOnLcd);
-						}
-						if(abs(tiltFactor) > 7){
-							leanTooFar = true;
-						} else {
-							leanTooFar = false;
+						} else { // Gyroscope game is done, show text for a few seconds
+							if(!gyrogameShowLCD) {
+								rememberTime = millis();
+								gyrogameShowLCD = true;
+							} else {
+								lcd.home();
+								lcd.print("You did it! You");
+								lcd.setCursor(0, 1);
+								lcd.print("got to the end!");
+
+								// After N seconds, change the Phase, so the game ends
+								if(rememberTime + 3000 < millis()) { gamePhase = 3; }
+							}
 						}
 					} else { // You have been to all the locations/points || time is up
-						if(gamePhase != endPhase) {
-							gameFinished = true;
-						} else {
-							clearData();
-						}
+						if(gamePhase != endPhase + 1) { gameFinished = true; }
+						else { clearData(); }
 					}
 				} else if(pmSwitch == 1) { // pmSwitch = 1, First stage of pmMode | logging in
 					lcd.home();
@@ -343,9 +370,10 @@ void loop()
 				}
 			} else { // pmMode on
 				giveCoordinate();
+
+				lcd.home();
 				switch(pmState) {
 					case 0: // Change LAT
-						lcd.home();
 						lcd.print("LAT: ");
 						if(dataCount == latCOsize - 1) { // If the amount of characters that's needed has been reached
 							sizeCO = (COposition - 1) * (2*sizeof(float)); // Location in the EEPROM
@@ -359,7 +387,6 @@ void loop()
 						}
 						break;
 					case 1: // Change LONG
-						lcd.home();
 						lcd.print("LONG: ");
 						if(dataCount == lngCOsize - 1) { // If the amount of characters that's needed has been reached
 							sizeCO = (COposition - 1) * (2*sizeof(float)) + 4; // Location in the EEPROM
@@ -373,7 +400,6 @@ void loop()
 						}
 						break;
 					case 2: // Change PASS
-						lcd.home();
 						lcd.print("Pass: ");
 						if(dataCount == passwordLength - 1) { // If the amount of characters that's needed has been reached 
 							sizePass = (COposition - 1) * (12*sizeof(char)) + sizeof(latlngCO); // Location in the EEPROM
@@ -400,9 +426,9 @@ void loop()
 			// lcd.setCursor(0, 1);
 			// lcd.print(" to The Circle!");
 		}
-	} else {
+	} else { // This is the part where most of the text on the LCD is handled
 		lcd.home();
-		if(!rememberState) {
+		if(!rememberState) { // This code mostly follows the same structure as the code above, to indicate what text needs to be displayed
 			if(!gameFinished) {
 				if(!pmMode) {
 					if(pmSwitch == 0) {
@@ -411,12 +437,12 @@ void loop()
 								if(dataCount == passwordLength - 1) {
 									lcd.clear();
 									lcd.home();
-									if(!strcmp(data, passWord[nextLocation])) {
+									if(!strcmp(data, passWord[nextLocation])) { // Password correct
 										lcd.print("Correct! Go to");
 										lcd.setCursor(0, 1);
 										lcd.print(" next location");
 										nextLocation++;
-									} else {
+									} else { // Password incorrect
 										lcd.print("Incorrect! Pls");
 										lcd.setCursor(0, 1);
 										lcd.print(" try again...");
@@ -424,19 +450,17 @@ void loop()
 									clearData();
 								}
 							// }
-						} else {
-							//
 						}
 					} else if(pmSwitch == 1) {
 						lcd.print("Onjuist!");
 						pmSwitch = 0;
 					} else {
-						if(COposition == 0 || COposition > latlngAmount) {
+						if(COposition == 0 || COposition > latlngAmount) { // When the given location is out of bounds
 						    lcd.print("Niet Geldig!");
 						}
 					}
 				} else {
-					switch(pmState) {
+					switch(pmState) { // Showing old information, for reference
 						case 0:
 							lcd.print("Old LAT: ");
 							lcd.setCursor(0, 1);
@@ -455,7 +479,7 @@ void loop()
 					}
 				}
 			} else {
-				switch(gamePhase) {
+				switch(gamePhase) { // Text for every time gamePhase changes
 					case 0:
 						lcd.print("End of Phase 1!");
 						lcd.setCursor(0, 1);
@@ -476,7 +500,7 @@ void loop()
 						lcd.setCursor(0, 1);
 						lcd.print(" to The Circle.");
 						break;
-					case 4:
+					case 4: // endPhase, here it shows you the score that is earned
 						score = 0;
 						for(byte i = 0; i < sizeof(passwordCorrect); i++) {
 							if(passwordCorrect[i] == 1) { score++; }
@@ -489,7 +513,7 @@ void loop()
 				}
 			}
 			rememberState = true;
-		} else {
+		} else { // If is run once | then it comes here, waiting to go back to the game.
 			if(millis() - changeLCDtimer > 1300) {
 				lcd.clear();
 				lcd.home();
@@ -499,6 +523,11 @@ void loop()
 		}
 	}
 }
+
+
+//*********************************************
+// FUNCTIONS
+//*********************************************
 
 // Functions Keypad
 char* giveData() {
@@ -524,12 +553,8 @@ char* giveCoordinate() {
 	return COdata;
 }
 void clearData() { // data, COdata and dataCount are emptied for next use
-	for(byte i = 0; i < passwordLength; i++) {
-		data[i] = 0;
-	}
-	for(byte i = 0; i < latCOsize; i++) {
-		COdata[i] = 0;
-	}
+	for(byte i = 0; i < passwordLength; i++) { data[i] = 0; }
+	for(byte i = 0; i < latCOsize; i++) { 	   COdata[i] = 0; }
 	dataCount = 0;
 }
 
@@ -556,7 +581,7 @@ void EEPROM_read() { // Transfering data from EEPROM to variables for easy use |
 // FastLED Functions
 void writeLED(byte color, byte led) { // Desides what LED needs which color
 	if 		(color == 0) {	leds[led].setRGB(0, 0, 0); } // Black
-	else if (color == 1) {	leds[led].setRGB(255, 0, 0); } // Red
+	else if (color == 1) {	leds[led].setRGB(255, 0, 0); } // Red | Doesn't work as intended currently
 	else if (color == 2) {	leds[led].setRGB(0, 255, 0); } // Green
 	else if (color == 3) {	leds[led].setRGB(0, 0, 255); } // Blue
 	FastLED.show();
@@ -583,7 +608,7 @@ void setupMPU(){
 	Wire.write(0b00000000); //Setting the accel to +/- 2g
 	Wire.endTransmission(); 
 }
-void recordAccelRegisters() {
+void recordAccelRegisters() { // Getting numbers from the MPU 6050
 	Wire.beginTransmission(0b1101000); //I2C address of the MPU
 	Wire.write(0x3B); //Starting register for Accel Readings
 	Wire.endTransmission();
@@ -594,30 +619,16 @@ void recordAccelRegisters() {
 	accelZ = Wire.read() <<8 | Wire.read(); //Store last two bytes into accelZ
 	processAccelData();
 }
-void processAccelData(){
+void processAccelData() { // processing the numbers, so we can actually read and use them
 	pitch = (atan(-1 * accelX / sqrt(pow(accelY, 2) + pow(accelZ, 2))) * 180 / PI);
 	roll = (atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI);
-	tiltFactor = map(roll, -10, 10, -7, 7);
+	tiltFactor = roll * 2; // Extra var to use in the gyro game
 }
-void printData() {
+void printData() { // Function for debugging purposes, showing us the pitch, roll and tiltFactor
 	Serial.print("Pitch = ");
-	Serial.print(pitch);
+	Serial.print(pitch, 3);
 	Serial.print("\tRoll = ");
-	Serial.print(roll);
-	Serial.print("\tTilt factor = ");
+	Serial.print(roll, 3);
+	Serial.print("\tTilt Factor = ");
 	Serial.println(tiltFactor);
-
-	// // Show with LED's
-	// for(int i = 0; i < NUM_LEDS; i++)
-	// {
-	// 	if(tiltFactor < i)
-	// 	{
-	// 		leds[i].setRGB(0, 255, 0);
-	// 	}
-	// 	else
-	// 	{
-	// 		leds[i].setRGB(0, 0, 255);
-	// 	}
-	// }
-	// FastLED.show();
 }
