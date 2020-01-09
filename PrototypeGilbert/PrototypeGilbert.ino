@@ -209,7 +209,7 @@ void loop()
 	for(byte i = 0; i < NUM_LEDS; i++) {
 		if(!gameFinished) { // LED logic when game is going
 			if(gamePhase != 2) {
-				if(passwordCorrect[i] == 1) { writeLED(2, i); }
+				if(passwordCorrect[i] == 1) { writeLED(1, i); }
 				else if(nextLocation == i) {  writeLED(3, i); }
 				else {						  writeLED(0, i); }
 			} else {
@@ -221,7 +221,7 @@ void loop()
 		} else { // LED logic when a phase is over (waiting to go to the next phase)
 			if(gamePhase != 4) { // Make all LED's the same color and blink
 				if(colorChange) { writeLED(0, i); }
-				else {		  	  writeLED(2, i); }
+				else {		  	  writeLED(1, i); }
 				// Every N ms colorChange is updated, making the LED's blink
 				if(millis() - rememberTime > 500) {
 					rememberTime = millis();
@@ -231,7 +231,7 @@ void loop()
 				byte x = millis() / 100 % NUM_LEDS; // Using millis() for the animation
 				for(int i = 0; i < NUM_LEDS; i++) {
 					if(i == x) { writeLED(0, i); }
-					else { 		writeLED(3, i); }
+					else { 		 writeLED(3, i); }
 				}
 			}
 		}
