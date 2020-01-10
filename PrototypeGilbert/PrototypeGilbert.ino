@@ -92,7 +92,7 @@ byte score;
 #include <FastLED.h>
 
 #define PIN 6
-#define NUM_LEDS 6
+#define NUM_LEDS 8
 CRGB leds[NUM_LEDS];
 
 bool colorChange = false;
@@ -119,6 +119,8 @@ bool gyrogameShowLCD = false;
 bool pmMode = false;
 byte pmSwitch = 0;
 byte pmState = 0;
+
+// States and phases of the game
 bool gameFinished = false;
 byte gamePhase = 0;
 byte endPhase = 4;
@@ -580,10 +582,10 @@ void EEPROM_read() { // Transfering data from EEPROM to variables for easy use |
 
 // FastLED Functions
 void writeLED(byte color, byte led) { // Desides what LED needs which color
-	if 		(color == 0) {	leds[led].setRGB(0, 0, 0); } // Black
-	else if (color == 1) {	leds[led].setRGB(255, 0, 0); } // Red | Doesn't work as intended currently
-	else if (color == 2) {	leds[led].setRGB(0, 255, 0); } // Green
-	else if (color == 3) {	leds[led].setRGB(0, 0, 255); } // Blue
+	if 		(color == 0) {	leds[led].setRGB(0, 0, 0); }  // Black
+	else if (color == 1) {	leds[led].setRGB(20, 0, 0); } // Red
+	else if (color == 2) {	leds[led].setRGB(0, 20, 0); } // Green
+	else if (color == 3) {	leds[led].setRGB(0, 0, 20); } // Blue
 	FastLED.show();
 }
 
