@@ -248,7 +248,8 @@ void loop()
 				giveData();
 				if(pmSwitch == 0) { // pmSwitch = 0, Not in ProgrammerMode | Should be the game
 					if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) {
-						// if(onDestination) {
+						if(onDestination) {
+							// lcd.clear();
 							lcd.home();
 							lcd.print("Password: ");
 							if(dataCount == passwordLength - 1) {
@@ -257,42 +258,51 @@ void loop()
 									lcd.clear();
 									waitForLCD = true;
 									passwordCorrect[nextLocation] = 1;
-									// onDestination = false;
+									onDestination = false;
 								} else { // Password Incorrect | try again
 									changeLCDtimer = millis();
 									lcd.clear();
 									waitForLCD = true;
 								}
 							}
-						// } else { // Not at the desired location | show disToDes on LCD
-						// 	while(Serial.available() > 0) {
-						// 		gps.encode(Serial.read());
-						// 	}
-						// 	if(gps.location.isUpdated()) { // Every time the GPS get's a new location
-						// 		// Code for Coordinates from GPS
-						// 		LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
-						// 		LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
-						// 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference));
+						} else { // Not at the desired location | show disToDes on LCD
+							while(Serial.available() > 0) {
+								gps.encode(Serial.read());
+							}
+							if(gps.location.isUpdated()) { // Every time the GPS get's a new location
+								// Code for Coordinates from GPS
+								LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
+								LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
+								disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
 
-						// 		// Serial.print("Latitude: ");
-						// 		// Serial.print(gps.location.lat()); 
-						// 		// Serial.print("\t");
-						// 		// Serial.print("Longitude: ");
-						// 		// Serial.print(gps.location.lng());
-						// 		// Serial.print("\t");
-						// 		// Serial.print("Distance: ");
-						// 		// Serial.println(disToDes);
-						// 		lcd.home();
-						// 		lcd.print("Distance to Des:");
-						// 		lcd.setCursor(0, 1);
-						// 		lcd.print(disToDes);
+								Serial.print("Latitude: ");
+								Serial.print(gps.location.lat(), 6); 
+								Serial.print("\t");
+								Serial.print("Longitude: ");
+								Serial.print(gps.location.lng(), 6);
+								Serial.print("\t");
+								Serial.print("Latitude dif: ");
+								Serial.print(LATDifference, 6); 
+								Serial.print("\t");
+								Serial.print("Longitude dif: ");
+								Serial.print(LONGDifference, 6);
+								Serial.print("\t");
+								Serial.print("Distance: ");
+								Serial.println(disToDes);
 
-						// 		if(disToDes < 5) {
-						// 			onDestination = true;
-						// 		}
-						// 		clearData();
-						// 	}
-						// }
+								lcd.clear();
+								lcd.home();
+								lcd.print("Distance to Des:");
+								lcd.setCursor(0, 1);
+								lcd.print(disToDes);
+
+								if(disToDes < 5) {
+									onDestination = true;
+									lcd.clear();
+								}
+								clearData();
+							}
+						}
 					} else if(gamePhase == 2) {
 						if(!gyrogameFinished) {
 							recordAccelRegisters();
