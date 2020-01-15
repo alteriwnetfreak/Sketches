@@ -35,7 +35,7 @@ byte customCharacter[8][8] =
 #include <FastLED.h>
 
 #define PIN 6
-#define NUM_LEDS 8
+#define NUM_LEDS 12
 CRGB leds[NUM_LEDS];
 
 
@@ -134,13 +134,17 @@ void printData() {
 	// Show with LED's
 	for(int i = 0; i < NUM_LEDS; i++)
 	{
-		if(tiltFactor < i)
+		if(abs(tiltFactor) < i)
 		{
-			leds[i].setRGB(20, 0, 0);
+			leds[i].setRGB(0, 0, 0);
 		}
 		else
 		{
-			leds[i].setRGB(0, 0, 20);
+			if(abs(tiltFactor) < 5) {
+				leds[i].setRGB(0, 0, 20);
+			} else {
+				leds[i].setRGB(abs(tiltFactor) * 5 + i, abs(tiltFactor) + i * 2, 0);
+			}
 		}
 	}
 	FastLED.show();

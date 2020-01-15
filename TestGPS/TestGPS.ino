@@ -111,22 +111,22 @@ void loop() {
 
 /*
 Voor password:
-3 pogingen, na 3 pogingen, password fout, LED wordt rood
-ga naar volgende punt
+//__ 3 pogingen, na 3 pogingen, password fout, LED wordt rood
+	 ga naar volgende punt
 
-Meer LEDs toevoegen
+//__ Meer LEDs toevoegen
 
-Wachtwoord in plaats van knop voor phase
-bij punt 6 en 12 code invoeren om verder te gaan met het spel
+//__ Wachtwoord in plaats van knop voor phase
+	 bij punt 6 en 12 code invoeren om verder te kunnen gaan met het spel
 
-knop PMMode langer (15s)
+//__ knop PMMode langer (15s)
 
-met phase 3 naar punt aanlopen
-bij punt aangekomen, moet timer aflopen, gyro activeren
+met phase 3 naar punt lopen
+bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren
 
-bij ter ver hellen "danger", 1x een punt eraf
-na 4-5 seconden door gaan met het spel/rekenen
-	bij eindpunt "The Circle" timer stoppen
+bij te ver hellen 				--> 	"Danger!", 1x een punt eraf
+na 4-5 seconden 				--> 	door gaan met het spel/rekenen
+	bij eindpunt "The Circle" 	--> 	timer stoppen
 	Final score laten zien
 
 
