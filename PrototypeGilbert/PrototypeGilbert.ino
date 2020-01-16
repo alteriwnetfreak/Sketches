@@ -84,7 +84,8 @@ float latlngCO[latlngAmount][2];
 char passWord[latlngAmount][passwordLength];
 byte passwordCorrect[latlngAmount] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 byte passWordIncorrect = 0;
-byte score;
+byte passwordScore = 0;
+int score;
 
 
 //*********************************************
@@ -108,8 +109,10 @@ long accelX, accelY, accelZ;
 float pitch, roll;
 int tiltFactor;
 byte tiltMax = 15;
+float theCircle[2] = { 52.024651, 5.555741 };
 
 bool leanTooFar = true;
+bool gyrogameSetup = true;
 bool gyrogameFinished = false;
 bool gyrogameShowLCD = false;
 
@@ -134,6 +137,7 @@ byte knopStatus = 0;
 long rememberTime = 0;
 bool rememberState = false;
 long timeTillGyrogameEnds;
+long gyroTimerOnLcd;
 unsigned long timeBeforePause = 27000;
 unsigned long nextPhaseBegin = 0;
 
@@ -198,14 +202,17 @@ void loop()
 	for(byte i = 0; i < NUM_LEDS; i++) {
 		if(!gameFinished) { // LED logic when game is going
 			if(gamePhase != 2) {
-				if(passwordCorrect[i] == 1) { 		writeLED(2, i); }
-				else if(passwordCorrect[i] == 2) {  writeLED(1, i); }
-				else if(nextLocation == i) {  		writeLED(3, i); }
-				else {						  		writeLED(0, i); }
+				if(passwordCorrect[i] == 1) { 	   writeLED(2, i); }
+				else if(passwordCorrect[i] == 2) { writeLED(1, i); }
+				else if(nextLocation == i) {  	   writeLED(3, i); }
+				else {						  	   writeLED(0, i); }
 			} else {
 				for(int i = 0; i < NUM_LEDS; i++) {
 					if(abs(tiltFactor) < i) { writeLED(0, i); }
-					else { 					  writeLED(3, i); }
+					else {
+						if(abs(tiltFactor) < 7) { writeLED(4, i); }
+						if(abs(tiltFactor) < 5) { writeLED(3, i); }
+					}
 				}
 			}
 		} else { // LED logic when a phase is over (waiting to go to the next phase)
@@ -259,56 +266,88 @@ void loop()
 								}
 							}
 						// } else { // Not at the desired location | show disToDes on LCD
-						// 	while(Serial.available() > 0) {
-						// 		gps.encode(Serial.read());
-						// 	}
-						// 	if(gps.location.isUpdated()) { // Every time the GPS get's a new location
-						// 		// Code for Coordinates from GPS
-						// 		LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
-						// 		LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
-						// 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
+							// while(Serial.available() > 0) {
+							// 	gps.encode(Serial.read());
+							// }
+							// if(gps.location.isUpdated()) { // Every time the GPS get's a new location
+							// 	// Code for Coordinates from GPS
+							// 	LATDifference = gps.location.lat() - latlngCO[nextLocation][0];
+							// 	LONGDifference = gps.location.lng() - latlngCO[nextLocation][1];
+							// 	disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
 
-						// 		Serial.print("Latitude: ");
-						// 		Serial.print(gps.location.lat(), 6); 
-						// 		Serial.print("\t");
-						// 		Serial.print("Longitude: ");
-						// 		Serial.print(gps.location.lng(), 6);
-						// 		Serial.print("\t");
-						// 		Serial.print("Latitude dif: ");
-						// 		Serial.print(LATDifference, 6); 
-						// 		Serial.print("\t");
-						// 		Serial.print("Longitude dif: ");
-						// 		Serial.print(LONGDifference, 6);
-						// 		Serial.print("\t");
-						// 		Serial.print("Distance: ");
-						// 		Serial.println(disToDes);
+							// 	Serial.print("Latitude: ");
+							// 	Serial.print(gps.location.lat(), 6); 
+							// 	Serial.print("\t");
+							// 	Serial.print("Longitude: ");
+							// 	Serial.print(gps.location.lng(), 6);
+							// 	Serial.print("\t");
+							// 	Serial.print("Latitude dif: ");
+							// 	Serial.print(LATDifference, 6); 
+							// 	Serial.print("\t");
+							// 	Serial.print("Longitude dif: ");
+							// 	Serial.print(LONGDifference, 6);
+							// 	Serial.print("\t");
+							// 	Serial.print("Distance: ");
+							// 	Serial.println(disToDes);
 
-						// 		lcd.clear();
-						// 		lcd.home();
-						// 		lcd.print("Distance to Des:");
-						// 		lcd.setCursor(0, 1);
-						// 		lcd.print(disToDes);
+							// 	lcd.clear();
+							// 	lcd.home();
+							// 	lcd.print("Distance to Des:");
+							// 	lcd.setCursor(0, 1);
+							// 	lcd.print(disToDes);
 
-						// 		if(disToDes < 5) {
-						// 			onDestination = true;
-						// 			lcd.clear();
-						// 		}
-						// 		clearData();
-						// 	}
+							// 	if(disToDes < 5) {
+							// 		onDestination = true;
+							// 		lcd.clear();
+							// 	}
+							// 	clearData();
+							// }
 						// }
 					} else if(gamePhase == 2) { // Gyro Game
 						if(!gyrogameFinished) { // While the game is still going
+							if(gyrogameSetup) {
+								timeTillGyrogameEnds = millis() + 300000;
+								for(byte i = 0; i < latlngAmount; i++) {
+									if(passwordCorrect[i] == 1) {
+										passwordScore++;
+									}
+								}
+								gyrogameSetup = false;
+							}
 							recordAccelRegisters();
 							printData();
+
+							while(Serial.available() > 0) {
+								gps.encode(Serial.read());
+							}
+							if(gps.location.isUpdated()) { // Every time the GPS get's a new location
+								// Code for Coordinates from GPS
+								LATDifference = gps.location.lat() - theCircle[0];
+								LONGDifference = gps.location.lng() - theCircle[1];
+								disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
+
+								if(disToDes < 5) {
+									gyrogameFinished = true;
+									score = gyroTimerOnLcd;
+									lcd.clear();
+								}
+								clearData();
+							}
 						} else { // Gyroscope game is done, show text for a few seconds
 							if(!gyrogameShowLCD) {
 								rememberTime = millis();
 								gyrogameShowLCD = true;
 							} else {
 								lcd.home();
-								lcd.print("You did it! You");
-								lcd.setCursor(0, 1);
-								lcd.print("got to the end!");
+								if(gyroTimerOnLcd == 0 || passwordScore == 0) {
+									lcd.print("You're too late");
+									lcd.setCursor(0, 1);
+									lcd.print("...");
+								} else {
+									lcd.print("You did it! You");
+									lcd.setCursor(0, 1);
+									lcd.print("got to the end!");
+								}
 
 								// After N seconds, change the Phase, so the game ends
 								if(rememberTime + 3000 < millis()) { gamePhase = 3; }
@@ -524,21 +563,20 @@ void loop()
 						lcd.setCursor(0, 1);
 						lcd.print(" to The Circle.");
 						break;
-					case 4: // endPhase, here it shows you the score that is earned
-						score = 0;
-						for(byte i = 0; i < sizeof(passwordCorrect); i++) {
-							if(passwordCorrect[i] == 1) { score++; }
-						}
-						lcd.print("You are done!");
-						lcd.setCursor(0, 1);
+					case 4: // endPhase | here is shown the score that is earned
 						lcd.print("Score: ");
 						lcd.print(score);
+						lcd.print("s");
+						lcd.setCursor(0, 1);
+						lcd.print("Bonus: ");
+						lcd.print(passwordScore);
+						lcd.print(" * 10s");
 						break;
 				}
 			}
 			rememberState = true;
-		} else { // If is run once | then it comes here, waiting to go back to the game.
-			if(millis() - changeLCDtimer > 1300) {
+		} else { // If-statement is run once | then it comes here, waiting to go back to the game.
+			if(millis() - changeLCDtimer > 2000) {
 				lcd.clear();
 				lcd.home();
 				waitForLCD = false;
@@ -604,10 +642,13 @@ void EEPROM_read() { // Transfering data from EEPROM to variables for easy use |
 
 // FastLED Functions
 void writeLED(byte color, byte led) { // Desides what LED needs which color
-	if 		(color == 0) {	leds[led].setRGB(0, 0, 0); }  // Black
-	else if (color == 1) {	leds[led].setRGB(20, 0, 0); } // Red
-	else if (color == 2) {	leds[led].setRGB(0, 20, 0); } // Green
-	else if (color == 3) {	leds[led].setRGB(0, 0, 20); } // Blue
+	switch(color) {
+		case 0: leds[led].setRGB(0, 0, 0); break;
+		case 1: leds[led].setRGB(20, 0, 0); break;
+		case 2: leds[led].setRGB(0, 20, 0); break;
+		case 3: leds[led].setRGB(0, 0, 20); break;
+		case 4: leds[led].setRGB(20, 10, 0); break;
+	}
 	FastLED.show();
 }
 
@@ -649,30 +690,46 @@ void processAccelData() { // processing the numbers, so we can actually read and
 	tiltFactor = roll * 2; // Extra var to use in the gyro game
 }
 void printData() { // Function for debugging purposes, showing us the pitch, roll and tiltFactor
-	Serial.print("Pitch = ");
-	Serial.print(pitch);
-	Serial.print("\tRoll = ");
+	lcd.clear();
+	if(rememberState) {
+		rememberTime = millis();
+		if(leanTooFar) {
+			if(passwordScore < 20 && passwordScore > 0) {
+				passwordScore--;
+				if(passwordScore == 0) {
+					gyrogameFinished = true;
+				}
+			}
+			rememberState = false;
+		}
+	} else {
+		leanTooFar = false;
+		lcd.setCursor(0, 1);
+		lcd.print("Level case: ");
+		lcd.print((millis() - rememberTime) / 1000);
+		if(millis() - rememberTime > 5000) {
+			rememberState = true;
+		}
+	}
+
+	// Checking if gyro is tilted too far or not
+	if(abs(tiltFactor) > 7) { leanTooFar = true; }
+
+	lcd.home();
+	lcd.print("Time: ");
+	gyroTimerOnLcd = (timeTillGyrogameEnds - millis()) / 1000;
+	if(gyroTimerOnLcd <= 0) { // If timer gets to 0 (zero) | change the game phase and finish the gyro game
+		gyroTimerOnLcd = 0;
+		gyrogameFinished = true;
+	}
+	lcd.print(gyroTimerOnLcd);
+
+	lcd.setCursor(11, 0);
+	lcd.print("S:");
+	lcd.print(passwordScore);
+
+	Serial.print("roll: ");
 	Serial.print(roll);
-	Serial.print("\tTilt Factor = ");
+	Serial.print("\ttiltFactor: ");
 	Serial.println(tiltFactor);
-
-	// // Timer gets reset if gyro is tilted too far
-	// if(leanTooFar) {
-	// 	timeTillGyrogameEnds = millis() + 10000;
-	// 	leanTooFar = !leanTooFar;
-	// }
-
-	// // Checking if gyro is tilted too far or not
-	// if(abs(tiltFactor) > 7) { leanTooFar = true; }
-
-	// // Code for LCD
-	// lcd.home();
-	// lcd.print("Time left:");
-	// lcd.setCursor(0, 1);
-	// long gyroTimerOnLcd = (timeTillGyrogameEnds - millis()) / 1000;
-	// if(gyroTimerOnLcd <= 0) { // If timer gets to 0 (zero) | change the game phase and finish the gyro game
-	// 	gyroTimerOnLcd = 0;
-	// 	gyrogameFinished = true;
-	// }
-	// lcd.print(gyroTimerOnLcd);
 }
