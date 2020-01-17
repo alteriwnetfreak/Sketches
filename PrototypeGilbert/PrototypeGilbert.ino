@@ -56,8 +56,7 @@ TinyGPSPlus gps;
 // SoftwareSerial gpSS(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 byte nextLocation = 0;
 bool onDestination = false;
-float LATDifference, LONGDifference;
-float disToDes;
+float LATDifference, LONGDifference, disToDes;
 
 
 //*********************************************
@@ -109,10 +108,14 @@ long accelX, accelY, accelZ;
 float pitch, roll;
 int tiltFactor;
 byte tiltMax = 15;
-float theCircle[2] = { 52.024651, 5.555741 };
+float gyroGameCO[2][2] = {
+	{ 52.024651, 5.555741 },
+	{ 52.027860, 5.556520 }
+};
 
 bool leanTooFar = true;
 bool gyrogameSetup = true;
+bool notYetAtStartGyroGame = true;
 bool gyrogameFinished = false;
 bool gyrogameShowLCD = false;
 
@@ -124,10 +127,10 @@ byte pmState = 0;
 
 // States and phases of the game
 bool gameFinished = false;
-byte gamePhase = 0;
 bool phaseJustEnded;
-char phasePass[3][passwordLength] = { "20011", "30011", "40011" };
+byte gamePhase = 0;
 byte endPhase = 4;
+char phasePass[3][passwordLength] = { "20011", "30011", "40011" };
 
 // Knop
 long knopIngedrukt = 0;
@@ -207,12 +210,10 @@ void loop()
 				else if(nextLocation == i) {  	   writeLED(3, i); }
 				else {						  	   writeLED(0, i); }
 			} else {
-				for(int i = 0; i < NUM_LEDS; i++) {
-					if(abs(tiltFactor) < i) { writeLED(0, i); }
-					else {
-						if(abs(tiltFactor) < 7) { writeLED(4, i); }
-						if(abs(tiltFactor) < 5) { writeLED(3, i); }
-					}
+				if(abs(tiltFactor) < i) { writeLED(0, i); }
+				else {
+					if(abs(tiltFactor) > 5) { writeLED(4, i); }
+					if(abs(tiltFactor) < 6) { writeLED(3, i); }
 				}
 			}
 		} else { // LED logic when a phase is over (waiting to go to the next phase)
@@ -232,6 +233,7 @@ void loop()
 				}
 			}
 		}
+		FastLED.show();
 	}
 
 	//*********************************************
@@ -249,6 +251,7 @@ void loop()
 							lcd.print("Password: ");
 							if(dataCount == passwordLength - 1) {
 								if(!strcmp(data, passWord[nextLocation])) { // Password Correct | Go on to next point
+									passWordIncorrect = 0;
 									changeLCDtimer = millis();
 									lcd.clear();
 									waitForLCD = true;
@@ -322,13 +325,21 @@ void loop()
 							}
 							if(gps.location.isUpdated()) { // Every time the GPS get's a new location
 								// Code for Coordinates from GPS
-								LATDifference = gps.location.lat() - theCircle[0];
-								LONGDifference = gps.location.lng() - theCircle[1];
+								LATDifference = gps.location.lat() - gyroGameCO[notYetAtStartGyroGame][0];
+								LONGDifference = gps.location.lng() - gyroGameCO[notYetAtStartGyroGame][1];
 								disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
 
+								lcd.setCursor(0, 1);
+								lcd.print("Distance: ");
+								lcd.print(disToDes);
+
 								if(disToDes < 5) {
-									gyrogameFinished = true;
-									score = gyroTimerOnLcd;
+									if(notYetAtStartGyroGame) {
+										notYetAtStartGyroGame = false;
+									} else {
+										gyrogameFinished = true;
+										score = gyroTimerOnLcd;
+									}
 									lcd.clear();
 								}
 								clearData();
@@ -337,28 +348,31 @@ void loop()
 							if(!gyrogameShowLCD) {
 								rememberTime = millis();
 								gyrogameShowLCD = true;
-							} else {
-								lcd.home();
-								if(gyroTimerOnLcd == 0 || passwordScore == 0) {
-									lcd.print("You're too late");
-									lcd.setCursor(0, 1);
-									lcd.print("...");
-								} else {
-									lcd.print("You did it! You");
-									lcd.setCursor(0, 1);
-									lcd.print("got to the end!");
-								}
-
-								// After N seconds, change the Phase, so the game ends
-								if(rememberTime + 3000 < millis()) { gamePhase = 3; }
 							}
+							lcd.home();
+							if(gyroTimerOnLcd == 0) {
+								lcd.print("You're too late");
+								lcd.setCursor(0, 1);
+								lcd.print("...");
+							} else if(passwordScore == 0) {
+								lcd.print("It's gone wrong");
+								lcd.setCursor(0, 1);
+								lcd.print("...");
+							} else {
+								lcd.print("You did it! You");
+								lcd.setCursor(0, 1);
+								lcd.print("got to the end!");
+							}
+
+							// After N seconds, change the Phase, so the game ends
+							if(rememberTime + 3000 < millis()) { gamePhase = 3; }
 						}
 					} else { // You have been to all the locations/points || time is up
 						if(gamePhase != endPhase) {
 							gameFinished = true;
 							phaseJustEnded = true;
 						}
-						else { clearData(); }
+						clearData();
 					}
 				} else if(pmSwitch == 1) { // pmSwitch = 1, First stage of pmMode | logging in
 					lcd.home();
@@ -458,27 +472,22 @@ void loop()
 					pmSwitch = 0;
 					pmState = 0;
 					phaseJustEnded = !phaseJustEnded;
-				} else {
-					if(gamePhase < endPhase) {
-						giveData();
-						if(dataCount == passwordLength - 1) {
-							lcd.clear();
-							lcd.home();
-							if(!strcmp(data, phasePass[constrain(gamePhase, 0, 2)])) { // Password Correct | Go on to next phase
-								nextPhaseBegin = millis();
-								gameFinished = false;
-								gamePhase++;
-								nextLocation = latlngAmount/2 * gamePhase;
-								for(int i = 0; i < nextLocation; i++) {
-									if(passwordCorrect[i] == 0) {
-										passwordCorrect[i] = 2;
-									}
-								}
-								clearData();
-							} else { // Password Incorrect | try again
-								clearData();
+				}
+				if(gamePhase < endPhase) {
+					giveData();
+					if(dataCount == passwordLength - 1) {
+						lcd.clear();
+						lcd.home();
+						if(!strcmp(data, phasePass[constrain(gamePhase, 0, 2)])) { // Password Correct | Go on to next phase
+							nextPhaseBegin = millis();
+							gameFinished = false;
+							gamePhase++;
+							nextLocation = latlngAmount/2 * gamePhase;
+							for(int i = 0; i < nextLocation; i++) {
+								if(passwordCorrect[i] == 0) { passwordCorrect[i] = 2; }
 							}
 						}
+						clearData();
 					}
 				}
 			}
@@ -518,9 +527,8 @@ void loop()
 						lcd.print("Onjuist!");
 						pmSwitch = 0;
 					} else {
-						if(COposition == 0 || COposition > latlngAmount) { // When the given location is out of bounds
-						    lcd.print("Niet Geldig!");
-						}
+						// When the given location is out of bounds
+						if(COposition == 0 || COposition > latlngAmount) { lcd.print("Niet Geldig!"); }
 					}
 				} else {
 					switch(pmState) { // Showing old information, for reference
@@ -569,19 +577,18 @@ void loop()
 						lcd.print("s");
 						lcd.setCursor(0, 1);
 						lcd.print("Bonus: ");
-						lcd.print(passwordScore);
-						lcd.print(" * 10s");
+						lcd.print(passwordScore * 10);
+						lcd.print("s");
 						break;
 				}
 			}
 			rememberState = true;
-		} else { // If-statement is run once | then it comes here, waiting to go back to the game.
-			if(millis() - changeLCDtimer > 2000) {
-				lcd.clear();
-				lcd.home();
-				waitForLCD = false;
-				rememberState = false;
-			}
+		}
+		if(millis() - changeLCDtimer > 2000) {
+			lcd.clear();
+			lcd.home();
+			waitForLCD = false;
+			rememberState = false;
 		}
 	}
 }
@@ -649,7 +656,6 @@ void writeLED(byte color, byte led) { // Desides what LED needs which color
 		case 3: leds[led].setRGB(0, 0, 20); break;
 		case 4: leds[led].setRGB(20, 10, 0); break;
 	}
-	FastLED.show();
 }
 
 // Gyro functions
@@ -690,7 +696,6 @@ void processAccelData() { // processing the numbers, so we can actually read and
 	tiltFactor = roll * 2; // Extra var to use in the gyro game
 }
 void printData() { // Function for debugging purposes, showing us the pitch, roll and tiltFactor
-	lcd.clear();
 	if(rememberState) {
 		rememberTime = millis();
 		if(leanTooFar) {
@@ -698,6 +703,7 @@ void printData() { // Function for debugging purposes, showing us the pitch, rol
 				passwordScore--;
 				if(passwordScore == 0) {
 					gyrogameFinished = true;
+					score = gyroTimerOnLcd;
 				}
 			}
 			rememberState = false;
@@ -709,27 +715,44 @@ void printData() { // Function for debugging purposes, showing us the pitch, rol
 		lcd.print((millis() - rememberTime) / 1000);
 		if(millis() - rememberTime > 5000) {
 			rememberState = true;
+			lcd.clear();
 		}
 	}
-
 	// Checking if gyro is tilted too far or not
 	if(abs(tiltFactor) > 7) { leanTooFar = true; }
 
 	lcd.home();
 	lcd.print("Time: ");
 	gyroTimerOnLcd = (timeTillGyrogameEnds - millis()) / 1000;
-	if(gyroTimerOnLcd <= 0) { // If timer gets to 0 (zero) | change the game phase and finish the gyro game
+	if(gyroTimerOnLcd <= 0) { // If timer gets to 0 (zero) | finish the gyro game
 		gyroTimerOnLcd = 0;
 		gyrogameFinished = true;
 	}
 	lcd.print(gyroTimerOnLcd);
-
 	lcd.setCursor(11, 0);
 	lcd.print("S:");
 	lcd.print(passwordScore);
-
-	Serial.print("roll: ");
-	Serial.print(roll);
-	Serial.print("\ttiltFactor: ");
-	Serial.println(tiltFactor);
 }
+
+/*
+	Voor password:
+	//__ 3 pogingen, na 3 pogingen 	-->		password fout, LED wordt rood
+									-->		password goed, LED wordt blauw
+		 ga naar volgende punt
+
+	//__ Meer LEDs toevoegen
+
+	//__ Wachtwoord in plaats van knop voor phase
+		 bij punt 6 en 12 code invoeren om verder te kunnen gaan met het spel
+
+	//__ knop PMMode langer (15s)
+
+	//__ bij te ver hellen 			--> 	"Danger!", 1x een punt eraf
+	//__ na 4-5 seconden 			--> 	door gaan met het spel/rekenen
+
+	Nog niet getest -->
+	//__ met phase 3 (gyro game) naar punt lopen
+		 bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren, naar ander punt (The Circle) lopen
+		 bij eindpunt "The Circle" 		--> 	timer stoppen
+		 Final score laten zien
+*/

@@ -34,7 +34,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #include <FastLED.h>
 
 #define PIN 6
-#define NUM_LEDS 8
+#define NUM_LEDS 12
 CRGB leds[NUM_LEDS];
 
 
@@ -108,24 +108,3 @@ void loop() {
 		FastLED.show();
 	}
 }
-
-/*
-	Voor password:
-	//__ 3 pogingen, na 3 pogingen 	-->		password fout, LED wordt rood
-		 ga naar volgende punt
-
-	//__ Meer LEDs toevoegen
-
-	//__ Wachtwoord in plaats van knop voor phase
-		 bij punt 6 en 12 code invoeren om verder te kunnen gaan met het spel
-
-	//__ knop PMMode langer (15s)
-
-	//__ bij te ver hellen 				--> 	"Danger!", 1x een punt eraf
-	//__ na 4-5 seconden 				--> 	door gaan met het spel/rekenen
-
-	met phase 3 (gyro game) naar punt lopen
-	bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren, naar ander punt (The Circle) lopen
-	bij eindpunt "The Circle" 		--> 	timer stoppen
-	Final score laten zien
-*/
