@@ -156,7 +156,7 @@ void setup()
 	lcd.begin(16, 2);
 	lcd.clear();
 
-	// Read EEPROM for coördinates en passwords
+	// Read EEPROM for coördinates and passwords
 	EEPROM_read();
 
 	// Initialize the leds
