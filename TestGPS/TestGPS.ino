@@ -59,10 +59,10 @@ void setup()
 void loop() {
 	while(Serial.available() > 0)
 	{
-		// char c = Serial.read();
+		char c = Serial.read();
 
-		gps.encode(Serial.read());
-		// Serial.write(c);
+		// gps.encode(Serial.read());
+		Serial.write(c);
 	}
 	
 	if(gps.location.isUpdated())

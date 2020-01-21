@@ -30,6 +30,9 @@ byte customCharacter[8][8] =
 	{ 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111 }
 };
 
+byte testCijfers[2] = { 100, 200 };
+bool testBool;
+
 
 // Include FastLED
 #include <FastLED.h>
@@ -115,12 +118,14 @@ void printData() {
 	// Serial.print(gForceY);
 	// Serial.print(" Z= \t");
 	// Serial.print(gForceZ);
-	Serial.print("Pitch = ");
-	Serial.print(pitch);
-	Serial.print("\tRoll = ");
-	Serial.print(roll);
-	Serial.print("\tTilt factor = ");
-	Serial.println(tiltFactor);
+
+	// Serial.print("Pitch = ");
+	// Serial.print(pitch);
+	// Serial.print("\tRoll = ");
+	// Serial.print(roll);
+	// Serial.print("\tTilt factor = ");
+	// Serial.println(tiltFactor);
+	Serial.println(testCijfers[testBool]);
 
 	// Show on LCD
 	lcd.home();
@@ -142,8 +147,10 @@ void printData() {
 		{
 			if(abs(tiltFactor) < 5) {
 				leds[i].setRGB(0, 0, 20);
+				testBool = true;
 			} else {
 				leds[i].setRGB(abs(tiltFactor) * 5 + i, abs(tiltFactor) + i * 2, 0);
+				testBool = false;
 			}
 		}
 	}
