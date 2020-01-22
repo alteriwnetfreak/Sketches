@@ -35,16 +35,16 @@ Keypad customKeypad = Keypad(makeKeymap(numPad), rowPins, colPins, ROWS, COLS);
 
 // Global Variables | Keypad
 #define passwordLength 6 // -1, wegens "closing char": (\n)
-#define latlngAmount 12
-#define latCOsize 10 // -1, wegens "closing char": (\n)
-#define lngCOsize 9 // -1, wegens "closing char": (\n)
+#define locationAmount 12
+#define LATsize 10 // -1, wegens "closing char": (\n)
+#define LONGsize 9 // -1, wegens "closing char": (\n)
 
 char data[passwordLength] = "";
-char COdata[latCOsize] = "";
+char locationData[LATsize] = "";
 byte dataCount = 0;
 
 char programmerMode[passwordLength] = "2#111";
-byte COposition;
+byte nrOfLocation;
 
 
 //*********************************************
@@ -65,7 +65,7 @@ float LATDifference, LONGDifference, disToDes;
 //*********************************************
 #include <LiquidCrystal.h>
 
-const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8; // Digital pins
+const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 long changeLCDtimer = 0;
@@ -77,15 +77,15 @@ bool waitForLCD = false;
 //*********************************************
 #include <EEPROM.h>
 
-int sizeCO, sizePass;
-float valueF;
-char valueC[6];
-float latlngCO[latlngAmount][2];
-char passWord[latlngAmount][passwordLength];
-byte passwordCorrect[latlngAmount] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+int sizeLocation, sizePassword;
+float valueLocation;
+char valuePassword[6];
+float latlngLocation[locationAmount][2];
+char passWord[locationAmount][passwordLength];
+byte passwordCorrect[locationAmount] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 byte passWordIncorrect = 0;
 byte passwordScore = 0;
-int score;
+int timeScore;
 
 
 //*********************************************
@@ -108,6 +108,7 @@ bool colorChange = false;
 long accelX, accelY, accelZ;
 float pitch, roll;
 int tiltFactor;
+byte tiltThreshold = 9;
 byte tiltMax = 15;
 float gyroGameCO[2][2] = 
 {
@@ -117,6 +118,7 @@ float gyroGameCO[2][2] =
 
 bool leanTooFar = true;
 bool notYetAtStartGyroGame = true;
+bool gyrogameSetup = true;
 bool gyrogameFinished = false;
 bool gyrogameShowLCD = false;
 
@@ -131,11 +133,11 @@ bool gameFinished = false;
 bool phaseJustEnded;
 byte gamePhase = 0;
 byte endPhase = 4;
-char phasePass[3][passwordLength] = { "20011", "30011", "40011" };
+char phasePass[3][passwordLength] = { "10011", "20011", "30011" };
 
-// Knop
-long knopIngedrukt = 0;
-byte knopStatus = 0;
+// button
+long buttonPressed = 0;
+byte buttonStatus = 0;
 
 //Timers
 long rememberTime = 0;
@@ -174,24 +176,22 @@ void setup()
 //*********************************************
 void loop()
 {
-	Serial.println(gamePhase);
-
 	//*********************************************
 	// Code for button pressed, checking if button is pressed long enough
 	//*********************************************
-	byte knop = digitalRead(5);
-	if(knop != knopStatus) // knop changes constantly, so this codes runs constantly
+	byte button = digitalRead(5);
+	if(button != buttonStatus) // button changes constantly, so this codes runs constantly
 	{ 
-		knopStatus = knop;
-		if(knop == 1) { knopIngedrukt = millis(); } // knopIngedrukt gets the value of millis() | this is not updated while knop stays 1
-		else // each time knop is 0, the difference between millis() and knopIngedrukt is checked
+		buttonStatus = button;
+		if(button == 1) { buttonPressed = millis(); } // buttonPressed gets the value of millis() | this is not updated while button stays 1
+		else // each time button is 0, the difference between millis() and buttonPressed is checked
 		{ 
 			if(!gameFinished) 
 			{
-				if(millis() - knopIngedrukt >= 15000) // If the difference is more than n seconds
+				if(millis() - buttonPressed >= 15000) // If the difference is more than n seconds
 				{ 
 					rememberTime = millis();
-					knopIngedrukt = 0;
+					buttonPressed = 0;
 					lcd.clear();
 					lcd.home();
 					if(pmSwitch == 0) { pmSwitch = 1; } // Go into pmMode
@@ -213,28 +213,28 @@ void loop()
 	for(byte i = 0; i < NUM_LEDS; i++) 
 	{
 		if(!gameFinished) // LED logic when game is going
-		{ 
+		{
 			if(gamePhase != 2) 
 			{
 				if(passwordCorrect[i] == 1) { 	   writeLED(2, i); }
 				else if(passwordCorrect[i] == 2) { writeLED(1, i); }
 				else if(nextLocation == i) {  	   writeLED(3, i); }
 				else {						  	   writeLED(0, i); }
-			} 
-			else 
+			}
+			else
 			{
 				if(abs(tiltFactor) < i) { writeLED(0, i); }
-				else 
+				else
 				{
-					if(abs(tiltFactor) > 5) { writeLED(4, i); }
-					if(abs(tiltFactor) < 6) { writeLED(3, i); }
+					if(abs(tiltFactor) > tiltThreshold - 2) { writeLED(4, i); }
+					if(abs(tiltFactor) < tiltThreshold - 1) { writeLED(3, i); }
 				}
 			}
-		} 
+		}
 		else // LED logic when a phase is over (waiting to go to the next phase)
-		{ 
+		{
 			if(gamePhase != 4) // Make all LED's the same color and blink
-			{ 
+			{
 				if(colorChange) { writeLED(0, i); }
 				else {		  	  writeLED(3, i); }
 				// Every N ms colorChange is updated, making the LED's blink
@@ -243,9 +243,9 @@ void loop()
 					rememberTime = millis();
 					colorChange = !colorChange;
 				}
-			} 
+			}
 			else // The game is over, so you get another animation
-			{ 
+			{
 				byte x = millis() / 100 % NUM_LEDS; // Using millis() for the animation
 				for(int i = 0; i < NUM_LEDS; i++) 
 				{
@@ -260,16 +260,16 @@ void loop()
 	//*********************************************
 	// Main code
 	//*********************************************
-	if(!waitForLCD) 
-	{ 
-		if(!gameFinished) 
+	if(!waitForLCD)
+	{
+		if(!gameFinished)
 		{
 			if(!pmMode) // pmMode off 
-			{ 
+			{
 				giveData();
 				if(pmSwitch == 0) // pmSwitch = 0, Not in ProgrammerMode | Should be the game
-				{ 
-					if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) 
+				{
+					if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < locationAmount / (2 - constrain(gamePhase, 0, 1)))
 					{
 						// if(onDestination) {
 						// 	lcd.clear();
@@ -278,18 +278,18 @@ void loop()
 							if(dataCount == passwordLength - 1) 
 							{
 								if(!strcmp(data, passWord[nextLocation])) // Password Correct | Go on to next point
-								{ 
+								{
 									passWordIncorrect = 0;
 									changeLCDtimer = millis();
 									lcd.clear();
 									waitForLCD = true;
 									passwordCorrect[nextLocation] = 1;
 									onDestination = false;
-								} 
+								}
 								else // Password Incorrect | try again
-								{ 
+								{
 									passWordIncorrect++;
-									if(passWordIncorrect == 3) 
+									if(passWordIncorrect == 3)
 									{
 										passwordCorrect[nextLocation] = 2;
 										onDestination = false;
@@ -300,41 +300,46 @@ void loop()
 								}
 							}
 						// } else { // Not at the desired location | show disToDes on LCD
-							// ReadGPS(latlngCO, nextLocation);
+							// ReadGPS(latlngLocation, nextLocation);
 						// }
-					} 
+					}
 					else if(gamePhase == 2) // Gyro Game
-					{ 
+					{
 						if(!gyrogameFinished) // While the game is still going
-						{ 
-							if(!notYetAtStartGyroGame) 
+						{
+							if(gyrogameSetup)
+							{
+								rememberState = true;
+								gyrogameSetup = false;
+							}
+							ReadGPS(gyroGameCO, notYetAtStartGyroGame);
+							if(!notYetAtStartGyroGame)
 							{
 								recordAccelRegisters();
 								printData();
 							}
-							ReadGPS(gyroGameCO, notYetAtStartGyroGame);
-						} 
+						}
 						else // Gyroscope game is done, show text for a few seconds
-						{ 
-							if(!gyrogameShowLCD) 
+						{
+							if(!gyrogameShowLCD)
 							{
 								rememberTime = millis();
 								gyrogameShowLCD = true;
 							}
 							lcd.home();
-							if(gyroTimerOnLcd == 0) 
+							if(gyroTimerOnLcd == 0)
 							{
 								lcd.print("You're too late");
 								lcd.setCursor(0, 1);
 								lcd.print("...");
-							} 
-							else if(passwordScore == 0) 
+							}
+							else if(passwordScore == 0)
 							{
 								lcd.print("Something has");
 								lcd.setCursor(0, 1);
 								lcd.print(" gone wrong!");
-							} 
-							else 
+							}
+							else
 							{
 								lcd.print("You did it! You");
 								lcd.setCursor(0, 1);
@@ -344,30 +349,30 @@ void loop()
 							if(rememberTime + 3000 < millis()) { gamePhase = 3; }
 						}
 					} else // You have been to all the locations/points || time is up
-					{ 
-						if(gamePhase != endPhase) 
+					{
+						if(gamePhase != endPhase)
 						{
 							gameFinished = true;
 							phaseJustEnded = true;
 						}
 						clearData();
 					}
-				} 
+				}
 				else if(pmSwitch == 1) // pmSwitch = 1, First stage of pmMode | logging in
-				{ 
+				{
 					lcd.home();
 					lcd.print("PMMode pass: ");
-					if(dataCount == passwordLength - 1) 
+					if(dataCount == passwordLength - 1)
 					{
 						if(!strcmp(data, programmerMode)) // If pmMode pass is correct | Go on to next phase
-						{ 
+						{
 							Serial.println("Old Coördinates: ");
 							EEPROM_read();
 							pmSwitch = 2;
 							lcd.clear();
-						} 
+						}
 						else // If pmMode pass is incorrect | Go back to the game
-						{ 
+						{
 							changeLCDtimer = millis();
 							lcd.clear();
 							waitForLCD = true;
@@ -375,20 +380,20 @@ void loop()
 						clearData();
 					}
 				} else // pmSwitch = 2, Second stage of pmMode | Changing values
-				{ 
+				{
 					lcd.home();
 					lcd.print("Which location?");
 					if(dataCount == 2) // Als het aantal karakters dat nodig is is bereikt
-					{ 
-						COposition = atoi(data);
-						if(COposition == 0 || COposition > latlngAmount) // If typed is not compatible with the list, try again
-						{ 
+					{
+						nrOfLocation = atoi(data);
+						if(nrOfLocation == 0 || nrOfLocation > locationAmount) // If typed is not compatible with the list, try again
+						{
 						    changeLCDtimer = millis();
 							lcd.clear();
 						    waitForLCD = true;
-						} 
+						}
 						else // Go on to changing the value
-						{ 
+						{
 							changeLCDtimer = millis();
 							lcd.clear();
 							waitForLCD = true;
@@ -397,19 +402,19 @@ void loop()
 						clearData();
 					}
 				}
-			} 
-			else 
-			{ // pmMode on
+			}
+			else // pmMode on
+			{ 
 				giveCoordinate();
 				lcd.home();
 				switch(pmState) 
 				{
 					case 0: // Change LAT
 						lcd.print("LAT: ");
-						if(dataCount == latCOsize - 1) // If the amount of characters that's needed has been reached
-						{ 
-							sizeCO = (COposition - 1) * (2*sizeof(float)); // Location in the EEPROM
-							EEPROM.put(sizeCO, atof(COdata));
+						if(dataCount == LATsize - 1) // If the amount of characters that's needed has been reached
+						{
+							sizeLocation = (nrOfLocation - 1) * (2*sizeof(float)); // Location in the EEPROM
+							EEPROM.put(sizeLocation, atof(locationData));
 							EEPROM_read(); // Variables are updated
 							changeLCDtimer = millis();
 							lcd.clear();
@@ -420,10 +425,10 @@ void loop()
 						break;
 					case 1: // Change LONG
 						lcd.print("LONG: ");
-						if(dataCount == lngCOsize - 1) // If the amount of characters that's needed has been reached
-						{ 
-							sizeCO = (COposition - 1) * (2*sizeof(float)) + 4; // Location in the EEPROM
-							EEPROM.put(sizeCO, atof(COdata));
+						if(dataCount == LONGsize - 1) // If the amount of characters that's needed has been reached
+						{
+							sizeLocation = (nrOfLocation - 1) * (2*sizeof(float)) + 4; // Location in the EEPROM
+							EEPROM.put(sizeLocation, atof(locationData));
 							EEPROM_read(); // Variables are updated
 							changeLCDtimer = millis();
 							lcd.clear();
@@ -435,9 +440,9 @@ void loop()
 					case 2: // Change PASS
 						lcd.print("Pass: ");
 						if(dataCount == passwordLength - 1) // If the amount of characters that's needed has been reached 
-						{ 
-							sizePass = (COposition - 1) * (12*sizeof(char)) + sizeof(latlngCO); // Location in the EEPROM
-							EEPROM.put(sizePass, COdata);
+						{
+							sizePassword = (nrOfLocation - 1) * (12*sizeof(char)) + sizeof(latlngLocation); // Location in the EEPROM
+							EEPROM.put(sizePassword, locationData);
 							EEPROM_read(); // Variables are updated
 							pmMode = false;
 							pmSwitch = 2;
@@ -448,10 +453,10 @@ void loop()
 						break;
 				}
 			}
-		} 
-		else 
+		}
+		else // Game is finished / paused
 		{
-			if(gamePhase == 4) 
+			if(gamePhase == 4)
 			{
 				changeLCDtimer = millis();
 				lcd.clear();
@@ -460,10 +465,10 @@ void loop()
 				pmSwitch = 0;
 				pmState = 0;
 				phaseJustEnded = !phaseJustEnded;
-			} 
-			else 
+			}
+			else
 			{
-				if(phaseJustEnded) 
+				if(phaseJustEnded)
 				{
 					changeLCDtimer = millis();
 					lcd.clear();
@@ -473,20 +478,20 @@ void loop()
 					pmState = 0;
 					phaseJustEnded = !phaseJustEnded;
 				}
-				if(gamePhase < endPhase) 
+				if(gamePhase < endPhase)
 				{
 					giveData();
-					if(dataCount == passwordLength - 1) 
+					if(dataCount == passwordLength - 1)
 					{
 						lcd.clear();
 						lcd.home();
-						if(!strcmp(data, phasePass[constrain(gamePhase, 0, 2)])) 
-						{ // Password Correct | Go on to next phase
+						if(!strcmp(data, phasePass[constrain(gamePhase, 0, 2)])) // Password Correct | Go on to next phase
+						{ 
 							nextPhaseBegin = millis();
 							gameFinished = false;
 							gamePhase++;
-							nextLocation = latlngAmount/2 * gamePhase;
-							for(int i = 0; i < nextLocation; i++) 
+							nextLocation = locationAmount/2 * gamePhase;
+							for(int i = 0; i < nextLocation; i++)
 							{
 								if(passwordCorrect[i] == 0) { passwordCorrect[i] = 2; }
 							}
@@ -496,42 +501,42 @@ void loop()
 				}
 			}
 		}
-	} 
+	}
 	else // This is the part where most of the text on the LCD is handled
-	{ 
+	{
 		lcd.home();
 		if(!rememberState) // This code mostly follows the same structure as the code above, to indicate what text needs to be displayed
-		{ 
-			if(!gameFinished) 
+		{
+			if(!gameFinished)
 			{
-				if(!pmMode) 
+				if(!pmMode)
 				{
-					if(pmSwitch == 0) 
+					if(pmSwitch == 0)
 					{
-						if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < latlngAmount / (2 - constrain(gamePhase, 0, 1))) 
+						if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < locationAmount / (2 - constrain(gamePhase, 0, 1)))
 						{
 							if(dataCount == passwordLength - 1) 
 							{
 								lcd.clear();
 								lcd.home();
 								if(!strcmp(data, passWord[nextLocation])) // Password correct
-								{ 
+								{
 									lcd.print("Correct! Go to");
 									lcd.setCursor(0, 1);
 									lcd.print(" next location");
 									nextLocation++;
-								} 
+								}
 								else // Password incorrect
-								{ 
-									if(passWordIncorrect == 3) 
+								{
+									if(passWordIncorrect == 3)
 									{
 										lcd.print("Pass failed. Go");
 										lcd.setCursor(0, 1);
 										lcd.print(" to next point!");
 										nextLocation++;
 										passWordIncorrect = 0;
-									} 
-									else 
+									}
+									else
 									{
 										lcd.print("Incorrect! Pls");
 										lcd.setCursor(0, 1);
@@ -541,44 +546,44 @@ void loop()
 								clearData();
 							}
 						}
-					} 
-					else if(pmSwitch == 1) 
+					}
+					else if(pmSwitch == 1)
 					{
 						lcd.print("Onjuist!");
 						pmSwitch = 0;
-					} 
-					else 
+					}
+					else
 					{
 						// When the given location is out of bounds
-						if(COposition == 0 || COposition > latlngAmount) { lcd.print("Niet Geldig!"); }
+						if(nrOfLocation == 0 || nrOfLocation > locationAmount) { lcd.print("Niet Geldig!"); }
 					}
-				} 
-				else 
+				}
+				else
 				{
 					switch(pmState) // Showing old information, for reference
-					{ 
+					{
 						case 0:
 							lcd.print("Old LAT: ");
 							lcd.setCursor(0, 1);
-							lcd.print(latlngCO[COposition - 1][0], 6);
+							lcd.print(latlngLocation[nrOfLocation - 1][0], 6);
 							break;
 						case 1:
 							lcd.print("Old LONG: ");
 							lcd.setCursor(0, 1);
-							lcd.print(latlngCO[COposition - 1][1], 6);
+							lcd.print(latlngLocation[nrOfLocation - 1][1], 6);
 							break;
 						case 2:
 							lcd.print("Old Pass: ");
 							lcd.setCursor(0, 1);
-							lcd.print(passWord[COposition - 1]);
+							lcd.print(passWord[nrOfLocation - 1]);
 							break;
 					}
 				}
-			} 
-			else 
+			}
+			else
 			{
 				switch(gamePhase) // Text for every time gamePhase changes
-				{ 
+				{
 					case 0:
 						lcd.print("End of Phase 1!");
 						lcd.setCursor(0, 1);
@@ -599,9 +604,9 @@ void loop()
 						lcd.setCursor(0, 1);
 						lcd.print(" to The Circle.");
 						break;
-					case 4: // endPhase | here is shown the score that is earned
+					case 4: // endPhase | here is shown the Score that is earned
 						lcd.print("Score: ");
-						lcd.print(score);
+						lcd.print(timeScore);
 						lcd.print("s");
 						lcd.setCursor(0, 1);
 						lcd.print("Bonus: ");
@@ -612,7 +617,7 @@ void loop()
 			}
 			rememberState = true;
 		}
-		if(millis() - changeLCDtimer > 2000) 
+		if(millis() - changeLCDtimer > 2000)
 		{
 			lcd.clear();
 			lcd.home();
@@ -646,37 +651,37 @@ char* giveCoordinate()
 	char customKey = customKeypad.getKey(); // char from keypad is saved in customKey
 	if(customKey) // customKey is updated
 	{ 
-		COdata[dataCount] = customKey;
+		locationData[dataCount] = customKey;
 		dataCount++;
 		lcd.setCursor(0, 1);
-		lcd.print(COdata);
-		// Serial.println(COdata);
+		lcd.print(locationData);
+		// Serial.println(locationData);
 	}
-	return COdata;
+	return locationData;
 }
-void clearData() // data, COdata and dataCount are emptied for next use
+void clearData() // data, locationData and dataCount are emptied for next use
 { 
 	for(byte i = 0; i < passwordLength; i++) { data[i] = 0; }
-	for(byte i = 0; i < latCOsize; i++) { 	   COdata[i] = 0; }
+	for(byte i = 0; i < LATsize; i++) { 	   locationData[i] = 0; }
 	dataCount = 0;
 }
 
 // EEPROM
 void EEPROM_read() // Transfering data from EEPROM to variables for easy use || Happens when the Arduino starts up and when something changes
 { 
-	for(byte i = 0; i < latlngAmount; i++) 
+	for(byte i = 0; i < locationAmount; i++) 
 	{
 		// Address of EEPROM per instance of information
-		sizeCO = i * (2*sizeof(float));							// Address on EEPROM for Coördinates
-		sizePass = i * (12*sizeof(char)) + sizeof(latlngCO);	// Address on EEPROM for passwords
+		sizeLocation = i * (2*sizeof(float));							// Address on EEPROM for Coördinates
+		sizePassword = i * (12*sizeof(char)) + sizeof(latlngLocation);	// Address on EEPROM for passwords
 		// Getting the information per address out of EEPROM to a variable
-		latlngCO[i][0] = EEPROM.get(sizeCO, valueF);		// Latitude is put in a variable
-		latlngCO[i][1] = EEPROM.get(sizeCO + 4, valueF);	// Longitude is put in a variable
-		memcpy(passWord[i], EEPROM.get(sizePass, valueC), sizeof(passWord[0])); // Password is put in a variable
+		latlngLocation[i][0] = EEPROM.get(sizeLocation, valueLocation);		// Latitude is put in a variable
+		latlngLocation[i][1] = EEPROM.get(sizeLocation + 4, valueLocation);	// Longitude is put in a variable
+		memcpy(passWord[i], EEPROM.get(sizePassword, valuePassword), sizeof(passWord[0])); // Password is put in a variable
 		// Print the results
-		Serial.print(latlngCO[i][0], 6);
+		Serial.print(latlngLocation[i][0], 6);
 		Serial.print("\t");
-		Serial.print(latlngCO[i][1], 6);
+		Serial.print(latlngLocation[i][1], 6);
 		Serial.print("\t");
 		Serial.println(passWord[i]);
 	}
@@ -746,10 +751,10 @@ void printData() // Function for debugging purposes, showing us the pitch, roll 
 			if(passwordScore < 20 && passwordScore > 0) 
 			{
 				passwordScore--;
-				if(passwordScore == 0) 
+				if(passwordScore == 0 || passwordScore > 200) 
 				{
 					gyrogameFinished = true;
-					score = gyroTimerOnLcd;
+					timeScore = gyroTimerOnLcd;
 				}
 			}
 			rememberState = false;
@@ -768,7 +773,7 @@ void printData() // Function for debugging purposes, showing us the pitch, roll 
 		}
 	}
 	// Checking if gyro is tilted too far or not
-	if(abs(tiltFactor) > 7) { leanTooFar = true; }
+	if(abs(tiltFactor) > tiltThreshold) { leanTooFar = true; }
 	lcd.home();
 	lcd.print("Time: ");
 	gyroTimerOnLcd = (timeTillGyrogameEnds - millis()) / 1000;
@@ -786,20 +791,36 @@ void printData() // Function for debugging purposes, showing us the pitch, roll 
 // GPS
 void ReadGPS(float position[][2], byte number) 
 {
-	while(Serial.available() > 0) 
+	while(Serial.available() > 0)
 	{
 		char c = Serial.read();
 
-		// gps.encode(Serial.read());
-		Serial.write(c);
+		gps.encode(c);
+		// Serial.write(c);
 	}
-	if(gps.location.isUpdated()) // Every time the GPS get's a new location
-	{ 
+
+	if(gps.time.isUpdated()) // Every time the GPS get's a new location
+	{
 		// Code for Coordinates from GPS
 		LATDifference = gps.location.lat() - position[number][0];
 		LONGDifference = gps.location.lng() - position[number][1];
 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
 
+		Serial.print("Hour: ");
+		Serial.print(gps.time.hour() + 1);
+		Serial.print("\tMinute: ");
+		Serial.print(gps.time.minute());
+		Serial.print("\tSecond: ");
+		Serial.print(gps.time.second());
+
+		unsigned long hourToSec = (gps.time.hour() + 1) * 3600;
+		int minuteToSec = gps.time.minute() * 60;
+		byte secondToSec = gps.time.second();
+
+		Serial.print(" = in sec: ");
+		unsigned long timeInSeconds = hourToSec + minuteToSec + secondToSec;
+		Serial.println(timeInSeconds);
+		
 		// Serial.print("Latitude: ");
 		// Serial.print(gps.location.lat(), 6); 
 		// Serial.print("\t");
@@ -815,26 +836,31 @@ void ReadGPS(float position[][2], byte number)
 		// Serial.print("Distance: ");
 		// Serial.println(disToDes);
 
-		if(gamePhase == 2) 
+		if(gamePhase == 2)
 		{
-			lcd.setCursor(0, 1);
-			lcd.print("Distance: ");
-			lcd.print(disToDes);
-			if(disToDes < 5) 
+			if(rememberState)
 			{
-				if(notYetAtStartGyroGame) 
+				lcd.setCursor(0, 1);
+				lcd.print("Distance: ");
+				lcd.print(disToDes);
+			}
+
+			if(disToDes < 5)
+			{
+				if(notYetAtStartGyroGame)
 				{
 					timeTillGyrogameEnds = millis() + 300000;
-					for(byte i = 0; i < latlngAmount; i++) 
+					for(byte i = 0; i < locationAmount; i++) 
 					{
 						if(passwordCorrect[i] == 1) { passwordScore++; }
 					}
+					passwordScore++;
 					notYetAtStartGyroGame = false;
-				} 
-				else 
+				}
+				else
 				{
 					gyrogameFinished = true;
-					score = gyroTimerOnLcd;
+					timeScore = gyroTimerOnLcd;
 				}
 				lcd.clear();
 			}
@@ -864,17 +890,17 @@ void ReadGPS(float position[][2], byte number)
 
 	//__ Meer LEDs toevoegen
 
-	//__ Wachtwoord in plaats van knop voor phase
+	//__ Wachtwoord in plaats van button voor phase
 		 bij punt 6 en 12 code invoeren om verder te kunnen gaan met het spel
 
-	//__ knop PMMode langer (15s)
+	//__ button PMMode langer (15s)
 
 	//__ bij te ver hellen 			--> 	"Danger!", 1x een punt eraf
 	//__ na 4-5 seconden 			--> 	door gaan met het spel/rekenen
 
 	Nog niet getest -->
 	//__ met phase 3 (gyro game) naar punt lopen
-		 bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren, naar ander punt (The Circle) lopen
+	//__ bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren, naar ander punt (The Circle) lopen
 		 bij eindpunt "The Circle" 		--> 	timer stoppen
-		 Final score laten zien
+	//__ Final Score laten zien
 */

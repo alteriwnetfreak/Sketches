@@ -57,11 +57,11 @@ void setup()
 }
 
 void loop() {
-	while(Serial.available() > 0)
+	if(Serial.available() > 0)
 	{
 		char c = Serial.read();
 
-		// gps.encode(Serial.read());
+		gps.encode(c);
 		Serial.write(c);
 	}
 	
