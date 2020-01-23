@@ -57,7 +57,7 @@ TinyGPSPlus gps;
 // SoftwareSerial gpSS(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 byte nextLocation = 0;
 bool onDestination = false;
-float LATDifference, LONGDifference, disToDes;
+float LATDifference, LONGDifference, disToDes, direction;
 
 
 //*********************************************
@@ -112,7 +112,7 @@ byte tiltThreshold = 9;
 byte tiltMax = 15;
 float gyroGameCO[2][2] = 
 {
-	{ 52.024651, 5.555741 },
+	{ 52.024425, 5.555132 },
 	{ 52.027860, 5.556520 }
 };
 
@@ -748,6 +748,7 @@ void printData() // Function for debugging purposes, showing us the pitch, roll 
 		rememberTime = millis();
 		if(leanTooFar) 
 		{
+			lcd.clear();
 			if(passwordScore < 20 && passwordScore > 0) 
 			{
 				passwordScore--;
@@ -805,21 +806,7 @@ void ReadGPS(float position[][2], byte number)
 		LATDifference = gps.location.lat() - position[number][0];
 		LONGDifference = gps.location.lng() - position[number][1];
 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
-
-		Serial.print("Hour: ");
-		Serial.print(gps.time.hour() + 1);
-		Serial.print("\tMinute: ");
-		Serial.print(gps.time.minute());
-		Serial.print("\tSecond: ");
-		Serial.print(gps.time.second());
-
-		unsigned long hourToSec = (gps.time.hour() + 1) * 3600;
-		int minuteToSec = gps.time.minute() * 60;
-		byte secondToSec = gps.time.second();
-
-		Serial.print(" = in sec: ");
-		unsigned long timeInSeconds = hourToSec + minuteToSec + secondToSec;
-		Serial.println(timeInSeconds);
+		direction = LATDifference / LONGDifference;
 		
 		// Serial.print("Latitude: ");
 		// Serial.print(gps.location.lat(), 6); 
@@ -836,12 +823,14 @@ void ReadGPS(float position[][2], byte number)
 		// Serial.print("Distance: ");
 		// Serial.println(disToDes);
 
+		Serial.println("");
+
 		if(gamePhase == 2)
 		{
 			if(rememberState)
 			{
 				lcd.setCursor(0, 1);
-				lcd.print("Distance: ");
+				lcd.print("Dist: ");
 				lcd.print(disToDes);
 			}
 

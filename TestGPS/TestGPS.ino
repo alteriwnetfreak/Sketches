@@ -2,12 +2,11 @@
 // Test GPS voor de Arduino
 //----------------------------------------------------
 
-// COÖRDINATEN CIRCLE: 52.024669, 5.5557331
-// COÖRDINATEN MIJN HUIS: 51.9776302, 5.6566043
-
 //*********************************************
 // Include GPS
 //*********************************************
+#include <math.h>
+
 #include <TinyGPS++.h>
 // #include <SoftwareSerial.h> // Nodig voor SoftwareSerial
 
@@ -21,6 +20,7 @@ float latD = 0;
 float lngD = 0;
 int disToDes = 0;
 int disToDesLCD = 0;
+float direction = 0;
 
 
 // Include LCD
@@ -62,7 +62,7 @@ void loop() {
 		char c = Serial.read();
 
 		gps.encode(c);
-		Serial.write(c);
+		// Serial.write(c);
 	}
 	
 	if(gps.location.isUpdated())
@@ -70,41 +70,42 @@ void loop() {
 		sat = gps.satellites.value();
 		lat = gps.location.lat();
 		lng = gps.location.lng();
-		latD = lat - 52.025519;
-		lngD = lng - 5.557415;
+		latD = lat - 52.024646;
+		lngD = lng - 5.555738;
 		disToDes = sqrt(sq(latD) + sq(lngD)) * 65000;
-		disToDesLCD = map(disToDes, 0, 600, 8, 6);
+		disToDesLCD = map(disToDes, 0, 600, NUM_LEDS, NUM_LEDS * 0.75);
+		direction = atan(latD / lngD);
 
-		Serial.print("Satellite count: ");
-		Serial.print(sat);
-		Serial.print("\tLatitude: ");
-		Serial.print(lat, 6);
-		Serial.print("\tLongitude: ");
-		Serial.print(lng, 6);
-		Serial.print("\tLat difference: ");
-		Serial.print(latD, 6);
-		Serial.print("\tLong difference: ");
-		Serial.print(lngD, 6);
-		Serial.print("\tDistance: ");
-		Serial.print(disToDes);
-		Serial.print(" ");
-		Serial.println(disToDesLCD);
+		// Serial.print("Satellite count: ");
+		// Serial.print(sat);
+		// Serial.print("\tLatitude: ");
+		// Serial.print(lat, 6);
+		// Serial.print("\tLongitude: ");
+		// Serial.print(lng, 6);
+		// Serial.print("\tLat difference: ");
+		// Serial.print(latD, 6);
+		// Serial.print("\tLong difference: ");
+		// Serial.print(lngD, 6);
+		// Serial.print("\tDistance: ");
+		// Serial.print(disToDes);
+		// Serial.print(" ");
+		// Serial.println(disToDesLCD);
 
 		lcd.clear();
 		lcd.home();
-		lcd.print("SAT: ");
-		lcd.print(sat);
+		lcd.print("Direction: ");
+		lcd.print(direction);
 		lcd.setCursor(0, 1);
 		lcd.print("Distance: ");
 		lcd.print(disToDes);
 
-		for(byte i = 0; i < NUM_LEDS; i++) {
-			if(i < disToDesLCD) {
-				leds[i].setRGB(0, 0, 0);
-			} else {
-				leds[i].setRGB(20, 0, 0);
-			}
-		}
-		FastLED.show();
+		// for(byte i = 0; i < NUM_LEDS; i++) {
+		// 	if(i < disToDesLCD) {
+		// 		leds[i].setRGB(0, 0, 0);
+		// 	} else {
+		// 		leds[i].setRGB(20, 0, 0);
+		// 	}
+		// }
+		// FastLED.show();
 	}
 }
