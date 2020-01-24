@@ -57,15 +57,15 @@ void setup()
 }
 
 void loop() {
-	if(Serial.available() > 0)
+	while(Serial.available() > 0)
 	{
 		char c = Serial.read();
 
-		gps.encode(c);
-		// Serial.write(c);
+		// gps.encode(c);
+		Serial.write(c);
 	}
 	
-	if(gps.location.isUpdated())
+	if(gps.time.isUpdated())
 	{
 		sat = gps.satellites.value();
 		lat = gps.location.lat();
@@ -73,7 +73,7 @@ void loop() {
 		latD = lat - 52.024646;
 		lngD = lng - 5.555738;
 		disToDes = sqrt(sq(latD) + sq(lngD)) * 65000;
-		disToDesLCD = map(disToDes, 0, 600, NUM_LEDS, NUM_LEDS * 0.75);
+		// disToDesLCD = map(disToDes, 0, 600, NUM_LEDS, NUM_LEDS * 0.75);
 		direction = atan(latD / lngD);
 
 		// Serial.print("Satellite count: ");
