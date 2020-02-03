@@ -2,18 +2,12 @@
 // Test GPS voor de Arduino
 //----------------------------------------------------
 
-//*********************************************
 // Include GPS
-//*********************************************
-#include <math.h>
-
 #include <TinyGPS++.h>
-// #include <SoftwareSerial.h> // Nodig voor SoftwareSerial
 
 TinyGPSPlus gps;
-// SoftwareSerial ss(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4 // Nodig voor SoftwareSerial
 
-int sat = 0;
+byte sat = 0;
 float lat = 0;
 float lng = 0;
 float latD = 0;
@@ -41,8 +35,7 @@ CRGB leds[NUM_LEDS];
 void setup() 
 {
 	Serial.begin(9600);
-	// ss.begin(9600); // Nodig voor SoftwareSerial
-	Serial.println("GPS Start!");
+	Serial.println("GPS Starting...");
 
 	lcd.begin(16, 2);
 	lcd.clear();
@@ -59,10 +52,10 @@ void setup()
 void loop() {
 	while(Serial.available() > 0)
 	{
-		char c = Serial.read();
+		// char c = Serial.read();
 
-		// gps.encode(c);
-		Serial.write(c);
+		gps.encode(Serial.read());
+		// Serial.write(c);
 	}
 	
 	if(gps.time.isUpdated())
@@ -70,26 +63,29 @@ void loop() {
 		sat = gps.satellites.value();
 		lat = gps.location.lat();
 		lng = gps.location.lng();
-		latD = lat - 52.024646;
-		lngD = lng - 5.555738;
+		latD = lat - 51.974083;
+		lngD = lng - 5.664080;
 		disToDes = sqrt(sq(latD) + sq(lngD)) * 65000;
 		// disToDesLCD = map(disToDes, 0, 600, NUM_LEDS, NUM_LEDS * 0.75);
-		direction = atan(latD / lngD);
+		direction = latD / lngD;
 
 		// Serial.print("Satellite count: ");
 		// Serial.print(sat);
-		// Serial.print("\tLatitude: ");
-		// Serial.print(lat, 6);
-		// Serial.print("\tLongitude: ");
-		// Serial.print(lng, 6);
-		// Serial.print("\tLat difference: ");
-		// Serial.print(latD, 6);
-		// Serial.print("\tLong difference: ");
-		// Serial.print(lngD, 6);
-		// Serial.print("\tDistance: ");
-		// Serial.print(disToDes);
-		// Serial.print(" ");
-		// Serial.println(disToDesLCD);
+		Serial.print("\tLatitude: ");
+		Serial.print(lat, 6);
+		Serial.print("\tLongitude: ");
+		Serial.print(lng, 6);
+		Serial.print("\tLat difference: ");
+		Serial.print(latD, 6);
+		Serial.print("\tLong difference: ");
+		Serial.print(lngD, 6);
+		Serial.print("\tDistance: ");
+		Serial.print(disToDes);
+		// Serial.print(" | ");
+		// Serial.print(disToDesLCD);
+		Serial.print("\tDirection: ");
+		Serial.print(direction);
+		Serial.println("");
 
 		lcd.clear();
 		lcd.home();
