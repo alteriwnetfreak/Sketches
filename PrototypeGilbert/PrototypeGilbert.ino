@@ -741,29 +741,29 @@ void processAccelData() // processing the numbers, so we can actually read and u
 	roll = (atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI);
 	tiltFactor = roll * 2; // Extra var to use in the gyro game
 }
-void printData() // Function for debugging purposes, showing us the pitch, roll and tiltFactor
-{ 
-	if(rememberState) 
+void printData()
+{
+	if(rememberState)
 	{
 		rememberTime = millis();
-		if(leanTooFar) 
+		if(leanTooFar)
 		{
 			lcd.clear();
-			if(passwordScore < 20 && passwordScore > 0) 
+			if(passwordScore < 20 && passwordScore > 0)
 			{
 				passwordScore--;
-				if(passwordScore == 0 || passwordScore > 200) 
+				if(passwordScore == 0 || passwordScore > 200)
 				{
 					gyrogameFinished = true;
 					timeScore = gyroTimerOnLcd;
 				}
 			}
 			rememberState = false;
+			leanTooFar = false;
 		}
-	} 
-	else 
+	}
+	else
 	{
-		leanTooFar = false;
 		lcd.setCursor(0, 1);
 		lcd.print("Level case: ");
 		lcd.print((millis() - rememberTime) / 1000);
@@ -790,7 +790,7 @@ void printData() // Function for debugging purposes, showing us the pitch, roll 
 }
 
 // GPS
-void ReadGPS(float position[][2], byte number) 
+void ReadGPS(float position[][2], byte number) // This is where most calculations are done in regard to the GPS
 {
 	while(Serial.available() > 0)
 	{
@@ -800,11 +800,11 @@ void ReadGPS(float position[][2], byte number)
 		// Serial.write(c);
 	}
 
-	if(gps.time.isUpdated()) // Every time the GPS get's a new location
+	if(gps.location.isUpdated()) // Every time the GPS get's a new location
 	{
 		// Code for Coordinates from GPS
 		LATDifference = gps.location.lat() - position[number][0];
-		LONGDifference = gps.location.lng() - position[number][1];
+		LONGDifference = (gps.location.lng() - position[number][1]) * (90.0 / gps.location.lat());
 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
 		direction = LATDifference / LONGDifference;
 		
@@ -823,15 +823,28 @@ void ReadGPS(float position[][2], byte number)
 		// Serial.print("Distance: ");
 		// Serial.println(disToDes);
 
-		Serial.println("");
+		// Serial.println("");
 
 		if(gamePhase == 2)
 		{
 			if(rememberState)
 			{
 				lcd.setCursor(0, 1);
-				lcd.print("Dist: ");
+				lcd.print("D: ");
 				lcd.print(disToDes);
+				lcd.setCursor(8, 1);
+				if(direction > 0.414)
+				{
+					if(LATDifference < 0) { lcd.print("N"); }
+					if(LATDifference > 0) { lcd.print("S"); }
+				}
+				lcd.setCursor(9, 1);
+				lcd.print("/");
+				if(direction < 2.414)
+				{
+					if(LONGDifference < 0) { lcd.print("E"); }
+					if(LONGDifference > 0) { lcd.print("W"); }
+				}
 			}
 
 			if(disToDes < 5)

@@ -40,7 +40,7 @@ void setup()
 	lcd.begin(16, 2);
 	lcd.clear();
 	lcd.home();
-	lcd.print("GPS Start!");
+	lcd.print("GPS Starting...");
 
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
 	for(byte i = 0; i < NUM_LEDS; i++) {
@@ -58,20 +58,35 @@ void loop() {
 		// Serial.write(c);
 	}
 	
-	if(gps.time.isUpdated())
+	if(gps.location.isUpdated())
 	{
 		sat = gps.satellites.value();
 		lat = gps.location.lat();
 		lng = gps.location.lng();
-		latD = lat - 51.974083;
-		lngD = lng - 5.664080;
+		latD = lat - 52.025502;
+		lngD = (lng - 5.556829) * (lat / 90.0);
 		disToDes = sqrt(sq(latD) + sq(lngD)) * 65000;
 		// disToDesLCD = map(disToDes, 0, 600, NUM_LEDS, NUM_LEDS * 0.75);
 		direction = latD / lngD;
 
+		lcd.clear();
+		lcd.home();
+		if(direction > 0.414 || direction < -0.414)
+		{
+			if(latD < 0) { lcd.print("N"); }
+			if(latD > 0) { lcd.print("S"); }
+		}
+		lcd.setCursor(1, 0);
+		lcd.print("/");
+		if(direction < 2.414 && direction > -2.414)
+		{
+			if(lngD < 0) { lcd.print("E"); }
+			if(lngD > 0) { lcd.print("W"); }
+		}
+
 		// Serial.print("Satellite count: ");
 		// Serial.print(sat);
-		Serial.print("\tLatitude: ");
+		Serial.print("Latitude: ");
 		Serial.print(lat, 6);
 		Serial.print("\tLongitude: ");
 		Serial.print(lng, 6);
@@ -79,21 +94,21 @@ void loop() {
 		Serial.print(latD, 6);
 		Serial.print("\tLong difference: ");
 		Serial.print(lngD, 6);
-		Serial.print("\tDistance: ");
-		Serial.print(disToDes);
+		// Serial.print("\tDistance: ");
+		// Serial.print(disToDes);
 		// Serial.print(" | ");
 		// Serial.print(disToDesLCD);
 		Serial.print("\tDirection: ");
-		Serial.print(direction);
+		Serial.print(direction, 6);
 		Serial.println("");
 
-		lcd.clear();
-		lcd.home();
+		// lcd.clear();
+		// lcd.home();
+		// lcd.print("Distance: ");
+		// lcd.print(disToDes);
+		lcd.setCursor(0, 1);
 		lcd.print("Direction: ");
 		lcd.print(direction);
-		lcd.setCursor(0, 1);
-		lcd.print("Distance: ");
-		lcd.print(disToDes);
 
 		// for(byte i = 0; i < NUM_LEDS; i++) {
 		// 	if(i < disToDesLCD) {
