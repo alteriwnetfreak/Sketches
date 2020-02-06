@@ -34,10 +34,10 @@ Keypad customKeypad = Keypad(makeKeymap(numPad), rowPins, colPins, ROWS, COLS);
 
 
 // Global Variables | Keypad
-#define passwordLength 6 // -1, wegens "closing char": (\n)
+#define passwordLength 6 // -1, cuz of "closing char": (\n)
 #define locationAmount 12
-#define LATsize 10 // -1, wegens "closing char": (\n)
-#define LONGsize 9 // -1, wegens "closing char": (\n)
+#define LATsize 10 // -1, cuz of "closing char": (\n)
+#define LONGsize 9 // -1, cuz of "closing char": (\n)
 
 char data[passwordLength] = "";
 char locationData[LATsize] = "";
@@ -48,13 +48,11 @@ byte nrOfLocation;
 
 
 //*********************************************
-// Include GPS | Software Serial
+// Include GPS
 //*********************************************
 #include <TinyGPS++.h>
-// #include <SoftwareSerial.h>
 
 TinyGPSPlus gps;
-// SoftwareSerial gpSS(3, 4); // Pins voor de GPS: TX-pin 3, RX-pin 4
 byte nextLocation = 0;
 bool onDestination = false;
 float LATDifference, LONGDifference, disToDes, direction;
@@ -108,7 +106,7 @@ bool colorChange = false;
 long accelX, accelY, accelZ;
 float pitch, roll;
 int tiltFactor;
-byte tiltThreshold = 9;
+byte tiltThreshold = 12;
 byte tiltMax = 15;
 float gyroGameCO[2][2] = 
 {
@@ -144,7 +142,7 @@ long rememberTime = 0;
 bool rememberState = false;
 long timeTillGyrogameEnds;
 long gyroTimerOnLcd;
-unsigned long timeBeforePause = 27000;
+unsigned long timeBeforePause = 2700000;
 unsigned long nextPhaseBegin = 0;
 
 
@@ -153,11 +151,14 @@ unsigned long nextPhaseBegin = 0;
 //*********************************************
 void setup() 
 {
-	// Initialize Serial | SS | LCD
+	// Initialize Serial | LCD
 	Serial.begin(9600);
-	// gpSS.begin(9600);
 	lcd.begin(16, 2);
 	lcd.clear();
+	lcd.home();
+	lcd.print("Waiting for game");
+	lcd.setCursor(0, 1);
+	lcd.print(" to start...!");
 
 	// Read EEPROM for coördinates and passwords
 	EEPROM_read();
@@ -196,8 +197,8 @@ void loop()
 					lcd.home();
 					if(pmSwitch == 0) { pmSwitch = 1; } // Go into pmMode
 					else if(pmSwitch >= 1) // Get out of pmMode
-					{ 
-						waitForLCD = true;
+					{
+						StartLCD();
 						pmSwitch = 0;
 						pmMode = false;
 					}
@@ -226,8 +227,8 @@ void loop()
 				if(abs(tiltFactor) < i) { writeLED(0, i); }
 				else
 				{
-					if(abs(tiltFactor) > tiltThreshold - 2) { writeLED(4, i); }
-					if(abs(tiltFactor) < tiltThreshold - 1) { writeLED(3, i); }
+					if(abs(tiltFactor) > tiltThreshold - 3) { writeLED(4, i); }
+					if(abs(tiltFactor) < tiltThreshold - 2) { writeLED(3, i); }
 				}
 			}
 		}
@@ -260,6 +261,7 @@ void loop()
 	//*********************************************
 	// Main code
 	//*********************************************
+	GpsEncoding();
 	if(!waitForLCD)
 	{
 		if(!gameFinished)
@@ -271,8 +273,9 @@ void loop()
 				{
 					if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < locationAmount / (2 - constrain(gamePhase, 0, 1)))
 					{
-						// if(onDestination) {
-						// 	lcd.clear();
+						if(onDestination)
+						{
+							lcd.clear();
 							lcd.home();
 							lcd.print("Password: ");
 							if(dataCount == passwordLength - 1) 
@@ -280,9 +283,7 @@ void loop()
 								if(!strcmp(data, passWord[nextLocation])) // Password Correct | Go on to next point
 								{
 									passWordIncorrect = 0;
-									changeLCDtimer = millis();
-									lcd.clear();
-									waitForLCD = true;
+									StartLCD();
 									passwordCorrect[nextLocation] = 1;
 									onDestination = false;
 								}
@@ -294,14 +295,14 @@ void loop()
 										passwordCorrect[nextLocation] = 2;
 										onDestination = false;
 									}
-									changeLCDtimer = millis();
-									lcd.clear();
-									waitForLCD = true;
+									StartLCD();
 								}
 							}
-						// } else { // Not at the desired location | show disToDes on LCD
-							// ReadGPS(latlngLocation, nextLocation);
-						// }
+						}
+						else // Not at the desired location | show disToDes on LCD
+						{
+							ReadGPS(latlngLocation, nextLocation);
+						}
 					}
 					else if(gamePhase == 2) // Gyro Game
 					{
@@ -373,9 +374,7 @@ void loop()
 						}
 						else // If pmMode pass is incorrect | Go back to the game
 						{
-							changeLCDtimer = millis();
-							lcd.clear();
-							waitForLCD = true;
+							StartLCD();
 						}
 						clearData();
 					}
@@ -388,15 +387,11 @@ void loop()
 						nrOfLocation = atoi(data);
 						if(nrOfLocation == 0 || nrOfLocation > locationAmount) // If typed is not compatible with the list, try again
 						{
-						    changeLCDtimer = millis();
-							lcd.clear();
-						    waitForLCD = true;
+						    StartLCD();
 						}
 						else // Go on to changing the value
 						{
-							changeLCDtimer = millis();
-							lcd.clear();
-							waitForLCD = true;
+							StartLCD();
 							pmMode = true;
 						}
 						clearData();
@@ -416,9 +411,7 @@ void loop()
 							sizeLocation = (nrOfLocation - 1) * (2*sizeof(float)); // Location in the EEPROM
 							EEPROM.put(sizeLocation, atof(locationData));
 							EEPROM_read(); // Variables are updated
-							changeLCDtimer = millis();
-							lcd.clear();
-							waitForLCD = true;
+							StartLCD();
 							clearData();
 							pmState++;
 						}
@@ -430,9 +423,7 @@ void loop()
 							sizeLocation = (nrOfLocation - 1) * (2*sizeof(float)) + 4; // Location in the EEPROM
 							EEPROM.put(sizeLocation, atof(locationData));
 							EEPROM_read(); // Variables are updated
-							changeLCDtimer = millis();
-							lcd.clear();
-							waitForLCD = true;
+							StartLCD();
 							clearData();
 							pmState++;
 						}
@@ -458,9 +449,7 @@ void loop()
 		{
 			if(gamePhase == 4)
 			{
-				changeLCDtimer = millis();
-				lcd.clear();
-				waitForLCD = true;
+				StartLCD();
 				pmMode = false;
 				pmSwitch = 0;
 				pmState = 0;
@@ -470,9 +459,7 @@ void loop()
 			{
 				if(phaseJustEnded)
 				{
-					changeLCDtimer = millis();
-					lcd.clear();
-					waitForLCD = true;
+					StartLCD();
 					pmMode = false;
 					pmSwitch = 0;
 					pmState = 0;
@@ -555,7 +542,7 @@ void loop()
 					else
 					{
 						// When the given location is out of bounds
-						if(nrOfLocation == 0 || nrOfLocation > locationAmount) { lcd.print("Niet Geldig!"); }
+						if(nrOfLocation == 0 || nrOfLocation > locationAmount) { lcd.print("Invalid!"); }
 					}
 				}
 				else
@@ -563,17 +550,17 @@ void loop()
 					switch(pmState) // Showing old information, for reference
 					{
 						case 0:
-							lcd.print("Old LAT: ");
+							lcd.print("Old Latitude: ");
 							lcd.setCursor(0, 1);
 							lcd.print(latlngLocation[nrOfLocation - 1][0], 6);
 							break;
 						case 1:
-							lcd.print("Old LONG: ");
+							lcd.print("Old Longitude: ");
 							lcd.setCursor(0, 1);
 							lcd.print(latlngLocation[nrOfLocation - 1][1], 6);
 							break;
 						case 2:
-							lcd.print("Old Pass: ");
+							lcd.print("Old Password: ");
 							lcd.setCursor(0, 1);
 							lcd.print(passWord[nrOfLocation - 1]);
 							break;
@@ -631,7 +618,6 @@ void loop()
 //*********************************************
 // FUNCTIONS
 //*********************************************
-
 // Keypad
 char* giveData() 
 {
@@ -664,6 +650,14 @@ void clearData() // data, locationData and dataCount are emptied for next use
 	for(byte i = 0; i < passwordLength; i++) { data[i] = 0; }
 	for(byte i = 0; i < LATsize; i++) { 	   locationData[i] = 0; }
 	dataCount = 0;
+}
+
+// LCD
+void StartLCD()
+{
+	changeLCDtimer = millis();
+	lcd.clear();
+	waitForLCD = true;
 }
 
 // EEPROM
@@ -790,7 +784,7 @@ void printData()
 }
 
 // GPS
-void ReadGPS(float position[][2], byte number) // This is where most calculations are done in regard to the GPS
+void GpsEncoding()
 {
 	while(Serial.available() > 0)
 	{
@@ -799,7 +793,25 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 		gps.encode(c);
 		// Serial.write(c);
 	}
-
+}
+void ShowDirection(byte placeOnLCDh, byte placeOnLCDv)
+{
+	lcd.setCursor(placeOnLCDh, placeOnLCDv);
+	if(direction > 0.414 || direction < -0.414)
+	{
+		if(LATDifference < 0) { lcd.print("N"); }
+		if(LATDifference > 0) { lcd.print("S"); }
+	}
+	lcd.setCursor(9, 1);
+	lcd.print("/");
+	if(direction < 2.414 && direction > -2.414)
+	{
+		if(LONGDifference < 0) { lcd.print("E"); }
+		if(LONGDifference > 0) { lcd.print("W"); }
+	}
+}
+void ReadGPS(float position[][2], byte number) // This is where most calculations are done, concerning the GPS
+{
 	if(gps.location.isUpdated()) // Every time the GPS get's a new location
 	{
 		// Code for Coordinates from GPS
@@ -827,24 +839,13 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 
 		if(gamePhase == 2)
 		{
+			lcd.clear();
 			if(rememberState)
 			{
 				lcd.setCursor(0, 1);
-				lcd.print("D: ");
+				lcd.print("D:");
 				lcd.print(disToDes);
-				lcd.setCursor(8, 1);
-				if(direction > 0.414)
-				{
-					if(LATDifference < 0) { lcd.print("N"); }
-					if(LATDifference > 0) { lcd.print("S"); }
-				}
-				lcd.setCursor(9, 1);
-				lcd.print("/");
-				if(direction < 2.414)
-				{
-					if(LONGDifference < 0) { lcd.print("E"); }
-					if(LONGDifference > 0) { lcd.print("W"); }
-				}
+				ShowDirection(9, 1);
 			}
 
 			if(disToDes < 5)
@@ -864,25 +865,27 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 					gyrogameFinished = true;
 					timeScore = gyroTimerOnLcd;
 				}
+			}
+		}
+		else
+		{
+			lcd.clear();
+			lcd.home();
+			lcd.print("D:");
+			lcd.print(disToDes);
+			ShowDirection(13, 0);
+
+			if(disToDes < 5)
+			{
+				onDestination = true;
 				lcd.clear();
 			}
 		}
-		// else
-		// {
-		// 	lcd.clear();
-		// 	lcd.home();
-		// 	lcd.print("Distance to Des:");
-		// 	lcd.setCursor(0, 1);
-		// 	lcd.print(disToDes);
-
-		// 	if(disToDes < 5) {
-		// 		onDestination = true;
-		// 		lcd.clear();
-		// 	}
-		// }
 	}
 	clearData();
 }
+
+
 
 /*
 	Voor password:
@@ -905,4 +908,7 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 	//__ bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren, naar ander punt (The Circle) lopen
 		 bij eindpunt "The Circle" 		--> 	timer stoppen
 	//__ Final Score laten zien
+
+	Met het GeoCachen:
+	//__ Aangeven waar je heen moet: N/E/S/W
 */

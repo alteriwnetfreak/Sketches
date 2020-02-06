@@ -43,13 +43,15 @@ void setup()
 	lcd.print("GPS Starting...");
 
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-	for(byte i = 0; i < NUM_LEDS; i++) {
-		leds[i].setRGB(0, 0, 0);
+	for(byte i = 0; i < NUM_LEDS; i++) 
+	{ 
+		leds[i].setRGB(0, 0, 0); 
 	}
 	FastLED.show();
 }
 
-void loop() {
+void loop()
+{
 	while(Serial.available() > 0)
 	{
 		// char c = Serial.read();
