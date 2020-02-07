@@ -735,7 +735,7 @@ void processAccelData() // processing the numbers, so we can actually read and u
 	roll = (atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI);
 	tiltFactor = roll * 2; // Extra var to use in the gyro game
 }
-void printData()
+void printData() // Shows all the necessary data for the gyro game
 {
 	if(rememberState)
 	{
@@ -784,27 +784,27 @@ void printData()
 }
 
 // GPS
-void GpsEncoding()
+void GpsEncoding() // Keeps looking for a fix while the game is playing, despite where you are 
 {
 	while(Serial.available() > 0)
 	{
 		char c = Serial.read();
 
 		gps.encode(c);
-		// Serial.write(c);
+		// Serial.write(c); // used for debugging
 	}
 }
-void ShowDirection(byte placeOnLCDh, byte placeOnLCDv)
+void ShowDirection(byte placeOnLCDh, byte placeOnLCDv) // This function is used to show in which direction you have to go
 {
 	lcd.setCursor(placeOnLCDh, placeOnLCDv);
-	if(direction > 0.414 || direction < -0.414)
+	if(direction > 0.414 || direction < -0.414) // Checks if you have to go North or South
 	{
 		if(LATDifference < 0) { lcd.print("N"); }
 		if(LATDifference > 0) { lcd.print("S"); }
 	}
 	lcd.setCursor(9, 1);
 	lcd.print("/");
-	if(direction < 2.414 && direction > -2.414)
+	if(direction < 2.414 && direction > -2.414) // Checks if you have to go East or West
 	{
 		if(LONGDifference < 0) { lcd.print("E"); }
 		if(LONGDifference > 0) { lcd.print("W"); }
@@ -815,11 +815,12 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 	if(gps.location.isUpdated()) // Every time the GPS get's a new location
 	{
 		// Code for Coordinates from GPS
-		LATDifference = gps.location.lat() - position[number][0];
-		LONGDifference = (gps.location.lng() - position[number][1]) * (90.0 / gps.location.lat());
-		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000;
-		direction = LATDifference / LONGDifference;
+		LATDifference = gps.location.lat() - position[number][0]; // Difference between your and next location in Latitude
+		LONGDifference = (gps.location.lng() - position[number][1]) * (90.0 / gps.location.lat()); // Difference between your and next location in Longitude
+		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000; // Absolute distance, using Pythagoras
+		direction = LATDifference / LONGDifference; // Used to indicate in what direction the next location is
 		
+		// // Serial prints for debugging purposes
 		// Serial.print("Latitude: ");
 		// Serial.print(gps.location.lat(), 6); 
 		// Serial.print("\t");
@@ -833,14 +834,13 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 		// Serial.print(LONGDifference, 6);
 		// Serial.print("\t");
 		// Serial.print("Distance: ");
-		// Serial.println(disToDes);
-
+		// Serial.print(disToDes);
 		// Serial.println("");
 
-		if(gamePhase == 2)
+		if(gamePhase == 2) // When gyrogame is playing
 		{
 			lcd.clear();
-			if(rememberState)
+			if(rememberState) // Distance is only shown if gyro is not tilted too far in gyro game
 			{
 				lcd.setCursor(0, 1);
 				lcd.print("D:");
@@ -848,9 +848,9 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 				ShowDirection(9, 1);
 			}
 
-			if(disToDes < 5)
+			if(disToDes < 5) // You first have to walk to the desired loation, before the real gyro game starts
 			{
-				if(notYetAtStartGyroGame)
+				if(notYetAtStartGyroGame) // When at 1st location | setup for gyrogame happens
 				{
 					timeTillGyrogameEnds = millis() + 300000;
 					for(byte i = 0; i < locationAmount; i++) 
@@ -860,14 +860,14 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 					passwordScore++;
 					notYetAtStartGyroGame = false;
 				}
-				else
+				else // You got to the end
 				{
 					gyrogameFinished = true;
 					timeScore = gyroTimerOnLcd;
 				}
 			}
 		}
-		else
+		else // When first 2 phases are playing | actual GeoCaching
 		{
 			lcd.clear();
 			lcd.home();
