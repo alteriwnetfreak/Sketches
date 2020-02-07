@@ -105,7 +105,7 @@ bool colorChange = false;
 
 long accelX, accelY, accelZ;
 float pitch, roll;
-int tiltFactor;
+int rollFactor;
 byte tiltThreshold = 12;
 byte tiltMax = 15;
 float gyroGameCO[2][2] = 
@@ -224,11 +224,11 @@ void loop()
 			}
 			else
 			{
-				if(abs(tiltFactor) < i) { writeLED(0, i); }
+				if(abs(rollFactor) < i) { writeLED(0, i); }
 				else
 				{
-					if(abs(tiltFactor) > tiltThreshold - 3) { writeLED(4, i); }
-					if(abs(tiltFactor) < tiltThreshold - 2) { writeLED(3, i); }
+					if(abs(rollFactor) > tiltThreshold - 3) { writeLED(4, i); }
+					if(abs(rollFactor) < tiltThreshold - 2) { writeLED(3, i); }
 				}
 			}
 		}
@@ -687,16 +687,16 @@ void writeLED(byte color, byte led) // Desides what LED needs which color
 { 
 	switch(color) 
 	{
-		case 0: leds[led].setRGB(0, 0, 0); break;
-		case 1: leds[led].setRGB(20, 0, 0); break;
-		case 2: leds[led].setRGB(0, 20, 0); break;
-		case 3: leds[led].setRGB(0, 0, 20); break;
-		case 4: leds[led].setRGB(20, 10, 0); break;
+		case 0: leds[led].setRGB(0, 0, 0); break; // Black/Off
+		case 1: leds[led].setRGB(20, 0, 0); break; // Red
+		case 2: leds[led].setRGB(0, 20, 0); break; // Green
+		case 3: leds[led].setRGB(0, 0, 20); break; // Blue
+		case 4: leds[led].setRGB(20, 10, 0); break; // Yellow
 	}
 }
 
 // Gyro
-void setupMPU()
+void setupMPU() // Setting up Accelerometer with the right settings
 {
 	Wire.begin();
 	Wire.beginTransmission(0x68);
@@ -731,22 +731,22 @@ void recordAccelRegisters() // Getting numbers from the MPU 6050
 }
 void processAccelData() // processing the numbers, so we can actually read and use them
 { 
-	pitch = (atan(-1 * accelX / sqrt(pow(accelY, 2) + pow(accelZ, 2))) * 180 / PI);
-	roll = (atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI);
-	tiltFactor = roll * 2; // Extra var to use in the gyro game
+	pitch = (atan(-1 * accelX / sqrt(pow(accelY, 2) + pow(accelZ, 2))) * 180 / PI); // from raw number to degrees
+	roll = (atan(-1 * accelY / sqrt(pow(accelX, 2) + pow(accelZ, 2))) * 180 / PI); // from raw number to degrees
+	rollFactor = roll * 2; // Extra var to use in the gyro game
 }
 void printData() // Shows all the necessary data for the gyro game
 {
-	if(rememberState)
+	if(rememberState) // Used to be able to display more information on screen than LCD is able to.
 	{
 		rememberTime = millis();
-		if(leanTooFar)
+		if(leanTooFar) // If gyro leans too far | one point gone, 5s to recover
 		{
 			lcd.clear();
 			if(passwordScore < 20 && passwordScore > 0)
 			{
-				passwordScore--;
-				if(passwordScore == 0 || passwordScore > 200)
+				passwordScore--; // one point gone
+				if(passwordScore == 0 || passwordScore > 200) // If no points left | finish the game
 				{
 					gyrogameFinished = true;
 					timeScore = gyroTimerOnLcd;
@@ -756,19 +756,19 @@ void printData() // Shows all the necessary data for the gyro game
 			leanTooFar = false;
 		}
 	}
-	else
+	else // Displaying info for recovering the gyro within 5s
 	{
 		lcd.setCursor(0, 1);
 		lcd.print("Level case: ");
 		lcd.print((millis() - rememberTime) / 1000);
-		if(millis() - rememberTime > 5000) 
+		if(millis() - rememberTime > 5000) // After 5 seconds, go on with the game
 		{
 			rememberState = true;
 			lcd.clear();
 		}
 	}
 	// Checking if gyro is tilted too far or not
-	if(abs(tiltFactor) > tiltThreshold) { leanTooFar = true; }
+	if(abs(rollFactor) > tiltThreshold) { leanTooFar = true; }
 	lcd.home();
 	lcd.print("Time: ");
 	gyroTimerOnLcd = (timeTillGyrogameEnds - millis()) / 1000;
@@ -789,7 +789,6 @@ void GpsEncoding() // Keeps looking for a fix while the game is playing, despite
 	while(Serial.available() > 0)
 	{
 		char c = Serial.read();
-
 		gps.encode(c);
 		// Serial.write(c); // used for debugging
 	}
@@ -802,7 +801,7 @@ void ShowDirection(byte placeOnLCDh, byte placeOnLCDv) // This function is used 
 		if(LATDifference < 0) { lcd.print("N"); }
 		if(LATDifference > 0) { lcd.print("S"); }
 	}
-	lcd.setCursor(9, 1);
+	lcd.setCursor(placeOnLCDh + 1, placeOnLCDv);
 	lcd.print("/");
 	if(direction < 2.414 && direction > -2.414) // Checks if you have to go East or West
 	{
@@ -815,8 +814,8 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 	if(gps.location.isUpdated()) // Every time the GPS get's a new location
 	{
 		// Code for Coordinates from GPS
-		LATDifference = gps.location.lat() - position[number][0]; // Difference between your and next location in Latitude
-		LONGDifference = (gps.location.lng() - position[number][1]) * (90.0 / gps.location.lat()); // Difference between your and next location in Longitude
+		LATDifference = gps.location.lat() - position[number][0]; // Difference in Latitude
+		LONGDifference = (gps.location.lng() - position[number][1]) * (90.0 / gps.location.lat()); // Difference in Longitude
 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000; // Absolute distance, using Pythagoras
 		direction = LATDifference / LONGDifference; // Used to indicate in what direction the next location is
 		
@@ -837,7 +836,7 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 		// Serial.print(disToDes);
 		// Serial.println("");
 
-		if(gamePhase == 2) // When gyrogame is playing
+		if(gamePhase == 2) // When gyro game is playing
 		{
 			lcd.clear();
 			if(rememberState) // Distance is only shown if gyro is not tilted too far in gyro game
@@ -848,9 +847,9 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 				ShowDirection(9, 1);
 			}
 
-			if(disToDes < 5) // You first have to walk to the desired loation, before the real gyro game starts
+			if(disToDes < 5) // You first have to walk to the desired location, before the real gyro game starts
 			{
-				if(notYetAtStartGyroGame) // When at 1st location | setup for gyrogame happens
+				if(notYetAtStartGyroGame) // When at 1st location | setup for gyro game happens
 				{
 					timeTillGyrogameEnds = millis() + 300000;
 					for(byte i = 0; i < locationAmount; i++) 
@@ -888,20 +887,8 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 
 
 /*
-	Voor password:
-	//__ 3 pogingen, na 3 pogingen 	-->		password fout, LED wordt rood
-									-->		password goed, LED wordt blauw
-		 ga naar volgende punt
-
-	//__ Meer LEDs toevoegen
-
 	//__ Wachtwoord in plaats van button voor phase
 		 bij punt 6 en 12 code invoeren om verder te kunnen gaan met het spel
-
-	//__ button PMMode langer (15s)
-
-	//__ bij te ver hellen 			--> 	"Danger!", 1x een punt eraf
-	//__ na 4-5 seconden 			--> 	door gaan met het spel/rekenen
 
 	Nog niet getest -->
 	//__ met phase 3 (gyro game) naar punt lopen
