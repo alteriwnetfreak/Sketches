@@ -32,8 +32,6 @@ byte colPins[COLS] = { 2, 3, 4 };
 byte rowPins[ROWS] = { A3, A2, A1, A0 };
 Keypad customKeypad = Keypad(makeKeymap(numPad), rowPins, colPins, ROWS, COLS);
 
-
-// Global Variables | Keypad
 #define passwordLength 6 // -1, cuz of "closing char": (\n)
 #define locationAmount 12
 #define LATsize 10 // -1, cuz of "closing char": (\n)
@@ -55,6 +53,7 @@ byte nrOfLocation;
 TinyGPSPlus gps;
 byte nextLocation = 0;
 bool onDestination = false;
+bool gpsGetsFirstFix = true;
 float LATDifference, LONGDifference, disToDes, direction;
 
 
@@ -78,10 +77,13 @@ bool waitForLCD = false;
 int sizeLocation, sizePassword;
 float valueLocation;
 char valuePassword[6];
+
 float latlngLocation[locationAmount][2];
 char passWord[locationAmount][passwordLength];
+
 byte passwordCorrect[locationAmount] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 byte passWordIncorrect = 0;
+
 byte passwordScore = 0;
 int timeScore;
 
@@ -156,19 +158,18 @@ void setup()
 	lcd.begin(16, 2);
 	lcd.clear();
 	lcd.home();
-	lcd.print("Waiting for game");
-	lcd.setCursor(0, 1);
-	lcd.print(" to start...!");
+	ShowTextOnLCD("Waiting for game", " to start...!");
 
 	// Read EEPROM for coördinates and passwords
 	EEPROM_read();
 
 	// Initialize the leds
 	FastLED.addLeds<WS2812, PIN, RGB>(leds, NUM_LEDS);
-	nextPhaseBegin = millis();
 
 	// Initialize Gyro
 	setupMPU();
+
+	nextPhaseBegin = millis();
 }
 
 
@@ -215,14 +216,14 @@ void loop()
 	{
 		if(!gameFinished) // LED logic when game is going
 		{
-			if(gamePhase != 2) 
+			if(gamePhase != 2) // When the gyro game is not played
 			{
-				if(passwordCorrect[i] == 1) { 	   writeLED(2, i); }
-				else if(passwordCorrect[i] == 2) { writeLED(1, i); }
-				else if(nextLocation == i) {  	   writeLED(3, i); }
-				else {						  	   writeLED(0, i); }
+				if(passwordCorrect[i] == 1) { 	   writeLED(2, i); } // when password was correct
+				else if(passwordCorrect[i] == 2) { writeLED(1, i); } // when password was incorrect after 3 times
+				else if(nextLocation == i) {  	   writeLED(3, i); } // color of the location we're currently at
+				else {						  	   writeLED(0, i); } // when we haven't been to a location yet
 			}
-			else
+			else // When gyro game is played
 			{
 				if(abs(rollFactor) < i) { writeLED(0, i); }
 				else
@@ -258,10 +259,19 @@ void loop()
 		FastLED.show();
 	}
 
+	// Serial.print("millis(): ");
+	// Serial.print(millis());
+	// Serial.print("\t");
+	// Serial.print("nextPhaseBegin: ");
+	// Serial.print(nextPhaseBegin);
+	// Serial.print("\t");
+	// Serial.print("gpsGetsFirstFix: ");
+	// Serial.print(gpsGetsFirstFix);
+	// Serial.println("");
+
 	//*********************************************
 	// Main code
 	//*********************************************
-	GpsEncoding();
 	if(!waitForLCD)
 	{
 		if(!gameFinished)
@@ -275,7 +285,6 @@ void loop()
 					{
 						if(onDestination)
 						{
-							lcd.clear();
 							lcd.home();
 							lcd.print("Password: ");
 							if(dataCount == passwordLength - 1) 
@@ -330,21 +339,15 @@ void loop()
 							lcd.home();
 							if(gyroTimerOnLcd == 0)
 							{
-								lcd.print("You're too late");
-								lcd.setCursor(0, 1);
-								lcd.print("...");
+								ShowTextOnLCD("You're too late", "...");
 							}
 							else if(passwordScore == 0)
 							{
-								lcd.print("Something has");
-								lcd.setCursor(0, 1);
-								lcd.print(" gone wrong!");
+								ShowTextOnLCD("Something has", " gone wrong!");
 							}
 							else
 							{
-								lcd.print("You did it! You");
-								lcd.setCursor(0, 1);
-								lcd.print("got to the end!");
+								ShowTextOnLCD("You did it! You", "got to the end!");
 							}
 							// After N seconds, change the Phase, so the game ends
 							if(rememberTime + 3000 < millis()) { gamePhase = 3; }
@@ -378,7 +381,8 @@ void loop()
 						}
 						clearData();
 					}
-				} else // pmSwitch = 2, Second stage of pmMode | Changing values
+				}
+				else // pmSwitch = 2, Second stage of pmMode | Changing values
 				{
 					lcd.home();
 					lcd.print("Which location?");
@@ -508,26 +512,20 @@ void loop()
 								lcd.home();
 								if(!strcmp(data, passWord[nextLocation])) // Password correct
 								{
-									lcd.print("Correct! Go to");
-									lcd.setCursor(0, 1);
-									lcd.print(" next location");
+									ShowTextOnLCD("Correct! Go to", " next location");
 									nextLocation++;
 								}
 								else // Password incorrect
 								{
 									if(passWordIncorrect == 3)
 									{
-										lcd.print("Pass failed. Go");
-										lcd.setCursor(0, 1);
-										lcd.print(" to next point!");
+										ShowTextOnLCD("Pass failed. Go", " to next point!");
 										nextLocation++;
 										passWordIncorrect = 0;
 									}
 									else
 									{
-										lcd.print("Incorrect! Pls");
-										lcd.setCursor(0, 1);
-										lcd.print(" try again...");
+										ShowTextOnLCD("Incorrect! Pls", " try again...");
 									}
 								}
 								clearData();
@@ -572,24 +570,16 @@ void loop()
 				switch(gamePhase) // Text for every time gamePhase changes
 				{
 					case 0:
-						lcd.print("End of Phase 1!");
-						lcd.setCursor(0, 1);
-						lcd.print("Return to Circle");
+						ShowTextOnLCD("End of Phase 1!", "Return to Circle");
 						break;
 					case 1:
-						lcd.print("End of Phase 2!");
-						lcd.setCursor(0, 1);
-						lcd.print("Return to Circle");
+						ShowTextOnLCD("End of Phase 2!", "Return to Circle");
 						break;
 					case 2:
-						lcd.print("End of Phase 3!");
-						lcd.setCursor(0, 1);
-						lcd.print("Return to Circle");
+						ShowTextOnLCD("End of Phase 3!", "Return to Circle");
 						break;
 					case 3:
-						lcd.print("End of Game. Go");
-						lcd.setCursor(0, 1);
-						lcd.print(" to The Circle.");
+						ShowTextOnLCD("End of Game. Go", " to The Circle.");
 						break;
 					case 4: // endPhase | here is shown the Score that is earned
 						lcd.print("Score: ");
@@ -628,7 +618,6 @@ char* giveData()
 		dataCount++;
 		lcd.setCursor(0, 1);
 		lcd.print(data);
-		// Serial.println(data);
 	}
 	return data;
 }
@@ -641,7 +630,6 @@ char* giveCoordinate()
 		dataCount++;
 		lcd.setCursor(0, 1);
 		lcd.print(locationData);
-		// Serial.println(locationData);
 	}
 	return locationData;
 }
@@ -658,6 +646,12 @@ void StartLCD()
 	changeLCDtimer = millis();
 	lcd.clear();
 	waitForLCD = true;
+}
+void ShowTextOnLCD(char text1[16], char text2[16])
+{
+	lcd.print(text1);
+	lcd.setCursor(0, 1);
+	lcd.print(text2);
 }
 
 // EEPROM
@@ -784,13 +778,14 @@ void printData() // Shows all the necessary data for the gyro game
 }
 
 // GPS
-void GpsEncoding() // Keeps looking for a fix while the game is playing, despite where you are 
+void GpsEncoding() // Keeps looking for a fix while the game is playing, despite what you are doing
 {
 	while(Serial.available() > 0)
 	{
-		char c = Serial.read();
-		gps.encode(c);
+		// char c = Serial.read();
+		// gps.encode(c);
 		// Serial.write(c); // used for debugging
+		gps.encode(Serial.read());
 	}
 }
 void ShowDirection(byte placeOnLCDh, byte placeOnLCDv) // This function is used to show in which direction you have to go
@@ -811,30 +806,21 @@ void ShowDirection(byte placeOnLCDh, byte placeOnLCDv) // This function is used 
 }
 void ReadGPS(float position[][2], byte number) // This is where most calculations are done, concerning the GPS
 {
+	GpsEncoding();
+
 	if(gps.location.isUpdated()) // Every time the GPS get's a new location
 	{
+		if(gpsGetsFirstFix)
+		{
+			nextPhaseBegin = millis();
+			gpsGetsFirstFix = false;
+		}
+
 		// Code for Coordinates from GPS
 		LATDifference = gps.location.lat() - position[number][0]; // Difference in Latitude
 		LONGDifference = (gps.location.lng() - position[number][1]) * (90.0 / gps.location.lat()); // Difference in Longitude
 		disToDes = sqrt(sq(LATDifference) + sq(LONGDifference)) * 65000; // Absolute distance, using Pythagoras
 		direction = LATDifference / LONGDifference; // Used to indicate in what direction the next location is
-		
-		// // Serial prints for debugging purposes
-		// Serial.print("Latitude: ");
-		// Serial.print(gps.location.lat(), 6); 
-		// Serial.print("\t");
-		// Serial.print("Longitude: ");
-		// Serial.print(gps.location.lng(), 6);
-		// Serial.print("\t");
-		// Serial.print("Latitude dif: ");
-		// Serial.print(LATDifference, 6); 
-		// Serial.print("\t");
-		// Serial.print("Longitude dif: ");
-		// Serial.print(LONGDifference, 6);
-		// Serial.print("\t");
-		// Serial.print("Distance: ");
-		// Serial.print(disToDes);
-		// Serial.println("");
 
 		if(gamePhase == 2) // When gyro game is playing
 		{
@@ -846,7 +832,7 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 				lcd.print(disToDes);
 				ShowDirection(9, 1);
 			}
-
+			
 			if(disToDes < 5) // You first have to walk to the desired location, before the real gyro game starts
 			{
 				if(notYetAtStartGyroGame) // When at 1st location | setup for gyro game happens
@@ -898,4 +884,21 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 
 	Met het GeoCachen:
 	//__ Aangeven waar je heen moet: N/E/S/W
+*/
+
+/*
+	Nieuwe punten voor prototype:
+	Punt 1:		52.024500, 5.555580
+	Punt 2: 	52.024225, 5.555907
+	Punt 3: 	52.023991, 5.556693
+	Punt 4: 	52.024574, 5.557372
+	Punt 5: 	52.025312, 5.555903
+	Punt 6: 	52.026216, 5.556572
+
+	Punt 7: 	52.025001, 5.555628
+	Punt 8: 	52.025296, 5.554507
+	Punt 9: 	52.025822, 5.554917
+	Punt 10: 	52.026281, 5.555274
+	Punt 11: 	52.026809, 5.555679
+	Punt 12: 	52.027292, 5.556088
 */
