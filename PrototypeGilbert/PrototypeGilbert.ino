@@ -259,19 +259,13 @@ void loop()
 		FastLED.show();
 	}
 
-	// Serial.print("millis(): ");
-	// Serial.print(millis());
-	// Serial.print("\t");
-	// Serial.print("nextPhaseBegin: ");
-	// Serial.print(nextPhaseBegin);
-	// Serial.print("\t");
-	// Serial.print("gpsGetsFirstFix: ");
-	// Serial.print(gpsGetsFirstFix);
-	// Serial.println("");
-
 	//*********************************************
 	// Main code
 	//*********************************************
+	GpsEncoding();
+	lcd.setCursor(15, 1);
+	lcd.print(gpsGetsFirstFix);
+
 	if(!waitForLCD)
 	{
 		if(!gameFinished)
@@ -685,7 +679,7 @@ void writeLED(byte color, byte led) // Desides what LED needs which color
 		case 1: leds[led].setRGB(20, 0, 0); break; // Red
 		case 2: leds[led].setRGB(0, 20, 0); break; // Green
 		case 3: leds[led].setRGB(0, 0, 20); break; // Blue
-		case 4: leds[led].setRGB(20, 10, 0); break; // Yellow
+		case 4: leds[led].setRGB(20, 10, 0); break; // Yellow/Orange
 	}
 }
 
@@ -806,8 +800,6 @@ void ShowDirection(byte placeOnLCDh, byte placeOnLCDv) // This function is used 
 }
 void ReadGPS(float position[][2], byte number) // This is where most calculations are done, concerning the GPS
 {
-	GpsEncoding();
-
 	if(gps.location.isUpdated()) // Every time the GPS get's a new location
 	{
 		if(gpsGetsFirstFix)
@@ -870,27 +862,11 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 	clearData();
 }
 
-
-
-/*
-	//__ Wachtwoord in plaats van button voor phase
-		 bij punt 6 en 12 code invoeren om verder te kunnen gaan met het spel
-
-	Nog niet getest -->
-	//__ met phase 3 (gyro game) naar punt lopen
-	//__ bij punt aangekomen 			--> 	moet timer aflopen, gyro activeren, naar ander punt (The Circle) lopen
-		 bij eindpunt "The Circle" 		--> 	timer stoppen
-	//__ Final Score laten zien
-
-	Met het GeoCachen:
-	//__ Aangeven waar je heen moet: N/E/S/W
-*/
-
 /*
 	Nieuwe punten voor prototype:
 	Punt 1:		52.024500, 5.555580
 	Punt 2: 	52.024225, 5.555907
-	Punt 3: 	52.023991, 5.556693
+	Punt 3: 	52.023968, 5.556642
 	Punt 4: 	52.024574, 5.557372
 	Punt 5: 	52.025312, 5.555903
 	Punt 6: 	52.026216, 5.556572
