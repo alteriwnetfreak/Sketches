@@ -157,8 +157,6 @@ void setup()
 	Serial.begin(9600);
 	lcd.begin(16, 2);
 	lcd.clear();
-	lcd.home();
-	ShowTextOnLCD("Waiting for game", " to start...!");
 
 	// Read EEPROM for coördinates and passwords
 	EEPROM_read();
@@ -216,12 +214,10 @@ void loop()
 	{
 		if(!gameFinished) // LED logic when game is going
 		{
-			if(gamePhase != 2) // When the gyro game is not played
+			if(gamePhase != 2) // For the first 2 rounds | When the gyro game is not played
 			{
-				if(passwordCorrect[i] == 1) { 	   writeLED(2, i); } // when password was correct
-				else if(passwordCorrect[i] == 2) { writeLED(1, i); } // when password was incorrect after 3 times
-				else if(nextLocation == i) {  	   writeLED(3, i); } // color of the location we're currently at
-				else {						  	   writeLED(0, i); } // when we haven't been to a location yet
+				writeLED(passwordCorrect[i], i); // Takes the number from passwordCorrect, and uses it to display the right color
+				if(nextLocation == i) { writeLED(3, i); }
 			}
 			else // When gyro game is played
 			{
@@ -263,8 +259,6 @@ void loop()
 	// Main code
 	//*********************************************
 	GpsEncoding();
-	lcd.setCursor(15, 1);
-	lcd.print(gpsGetsFirstFix);
 
 	if(!waitForLCD)
 	{
@@ -277,8 +271,8 @@ void loop()
 				{
 					if(millis() - nextPhaseBegin < timeBeforePause && nextLocation < locationAmount / (2 - constrain(gamePhase, 0, 1)))
 					{
-						if(onDestination)
-						{
+						// if(onDestination)
+						// {
 							lcd.home();
 							lcd.print("Password: ");
 							if(dataCount == passwordLength - 1) 
@@ -287,7 +281,7 @@ void loop()
 								{
 									passWordIncorrect = 0;
 									StartLCD();
-									passwordCorrect[nextLocation] = 1;
+									passwordCorrect[nextLocation] = 2;
 									onDestination = false;
 								}
 								else // Password Incorrect | try again
@@ -295,17 +289,17 @@ void loop()
 									passWordIncorrect++;
 									if(passWordIncorrect == 3)
 									{
-										passwordCorrect[nextLocation] = 2;
+										passwordCorrect[nextLocation] = 1;
 										onDestination = false;
 									}
 									StartLCD();
 								}
 							}
-						}
-						else // Not at the desired location | show disToDes on LCD
-						{
-							ReadGPS(latlngLocation, nextLocation);
-						}
+						// }
+						// else // Not at the desired location | show disToDes on LCD
+						// {
+						// 	ReadGPS(latlngLocation, nextLocation);
+						// }
 					}
 					else if(gamePhase == 2) // Gyro Game
 					{
@@ -471,14 +465,14 @@ void loop()
 						lcd.clear();
 						lcd.home();
 						if(!strcmp(data, phasePass[constrain(gamePhase, 0, 2)])) // Password Correct | Go on to next phase
-						{ 
+						{
 							nextPhaseBegin = millis();
 							gameFinished = false;
 							gamePhase++;
 							nextLocation = locationAmount/2 * gamePhase;
 							for(int i = 0; i < nextLocation; i++)
 							{
-								if(passwordCorrect[i] == 0) { passwordCorrect[i] = 2; }
+								if(passwordCorrect[i] == 0) { passwordCorrect[i] = 1; }
 							}
 						}
 						clearData();
@@ -643,6 +637,7 @@ void StartLCD()
 }
 void ShowTextOnLCD(char text1[16], char text2[16])
 {
+	lcd.home();
 	lcd.print(text1);
 	lcd.setCursor(0, 1);
 	lcd.print(text2);
@@ -780,6 +775,9 @@ void GpsEncoding() // Keeps looking for a fix while the game is playing, despite
 		// gps.encode(c);
 		// Serial.write(c); // used for debugging
 		gps.encode(Serial.read());
+	}
+	if(!gpsGetsFirstFix) {
+		ShowTextOnLCD("Waiting for game", " to start...!");
 	}
 }
 void ShowDirection(byte placeOnLCDh, byte placeOnLCDv) // This function is used to show in which direction you have to go
