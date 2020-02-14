@@ -66,7 +66,7 @@ const byte rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 long changeLCDtimer = 0;
-bool waitForLCD = false;
+bool lcdTransition = false;
 
 
 //*********************************************
@@ -260,7 +260,7 @@ void loop()
 	//*********************************************
 	GpsEncoding();
 
-	if(!waitForLCD)
+	if(!lcdTransition)
 	{
 		if(!gameFinished)
 		{
@@ -340,7 +340,8 @@ void loop()
 							// After N seconds, change the Phase, so the game ends
 							if(rememberTime + 3000 < millis()) { gamePhase = 3; }
 						}
-					} else // You have been to all the locations/points || time is up
+					}
+					else // You have been to all the locations/points || time is up
 					{
 						if(gamePhase != endPhase)
 						{
@@ -439,22 +440,18 @@ void loop()
 		}
 		else // Game is finished / paused
 		{
-			if(gamePhase == 4)
+			pmMode = false;
+			pmSwitch = 0;
+			pmState = 0;
+			if(gamePhase == endPhase)
 			{
 				StartLCD();
-				pmMode = false;
-				pmSwitch = 0;
-				pmState = 0;
-				phaseJustEnded = !phaseJustEnded;
 			}
 			else
 			{
 				if(phaseJustEnded)
 				{
 					StartLCD();
-					pmMode = false;
-					pmSwitch = 0;
-					pmState = 0;
 					phaseJustEnded = !phaseJustEnded;
 				}
 				if(gamePhase < endPhase)
@@ -586,7 +583,7 @@ void loop()
 		{
 			lcd.clear();
 			lcd.home();
-			waitForLCD = false;
+			lcdTransition = false;
 			rememberState = false;
 		}
 	}
@@ -633,7 +630,7 @@ void StartLCD()
 {
 	changeLCDtimer = millis();
 	lcd.clear();
-	waitForLCD = true;
+	lcdTransition = true;
 }
 void ShowTextOnLCD(char text1[16], char text2[16])
 {
@@ -859,20 +856,3 @@ void ReadGPS(float position[][2], byte number) // This is where most calculation
 	}
 	clearData();
 }
-
-/*
-	Nieuwe punten voor prototype:
-	Punt 1:		52.024500, 5.555580
-	Punt 2: 	52.024225, 5.555907
-	Punt 3: 	52.023968, 5.556642
-	Punt 4: 	52.024574, 5.557372
-	Punt 5: 	52.025312, 5.555903
-	Punt 6: 	52.026216, 5.556572
-
-	Punt 7: 	52.025001, 5.555628
-	Punt 8: 	52.025296, 5.554507
-	Punt 9: 	52.025822, 5.554917
-	Punt 10: 	52.026281, 5.555274
-	Punt 11: 	52.026809, 5.555679
-	Punt 12: 	52.027292, 5.556088
-*/
